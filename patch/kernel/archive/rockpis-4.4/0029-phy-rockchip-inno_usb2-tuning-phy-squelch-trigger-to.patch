@@ -1,0 +1,58 @@
+From e2b629e3dfc83666158c6908c97e82b4183f0803 Mon Sep 17 00:00:00 2001
+From: Frank Wang <frank.wang@rock-chips.com>
+Date: Tue, 26 Oct 2021 17:41:32 +0800
+Subject: [PATCH 29/30] phy: rockchip: inno_usb2: tuning phy squelch trigger to
+ 100mv for rk3308bs
+
+Tuning usb phy squelch trigger point configure to 100mv to fix below
+errors reporting from some devices.
+
+usb 2-1: new high-speed USB device number 2 using ehci-platform
+usb 2-1: device descriptor read/64, error -71
+usb 2-1: device descriptor read/64, error -71
+usb 2-1: new high-speed USB device number 3 using ehci-platform
+usb 2-1: device descriptor read/64, error -71
+usb 2-1: device descriptor read/64, error -71
+
+Signed-off-by: Frank Wang <frank.wang@rock-chips.com>
+Change-Id: I4f36f1a035c2f6c8ce23c7a17e1b492dc4d1199e
+---
+ drivers/phy/rockchip/phy-rockchip-inno-usb2.c | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-inno-usb2.c b/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
+index b905351..73925f3 100644
+--- a/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
++++ b/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
+@@ -1908,10 +1908,28 @@ static int rk3308_usb2phy_tuning(struct rockchip_usb2phy *rphy)
+ 		if (ret)
+ 			return ret;
+ 
++		/* Set otg port squelch trigger point configure to 100mv */
++		ret = regmap_update_bits(rphy->grf, 0x004, GENMASK(7, 5), 0x40);
++		if (ret)
++			return ret;
++
++		ret = regmap_update_bits(rphy->grf, 0x008, BIT(0), 0x1);
++		if (ret)
++			return ret;
++
+ 		/* Enable host port pre-emphasis during non-chirp phase */
+ 		ret = regmap_update_bits(rphy->grf, 0x400, GENMASK(2, 0), BIT(2));
+ 		if (ret)
+ 			return ret;
++
++		/* Set host port squelch trigger point configure to 100mv */
++		ret = regmap_update_bits(rphy->grf, 0x404, GENMASK(7, 5), 0x40);
++		if (ret)
++			return ret;
++
++		ret = regmap_update_bits(rphy->grf, 0x408, BIT(0), 0x1);
++		if (ret)
++			return ret;
+ 	} else {
+ 		/* Open pre-emphasize in non-chirp state for otg port */
+ 		ret = regmap_write(rphy->grf, 0x0, 0x00070004);
+-- 
+2.7.4
+

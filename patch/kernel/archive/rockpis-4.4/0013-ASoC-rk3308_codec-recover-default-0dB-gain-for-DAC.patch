@@ -1,0 +1,58 @@
+From 92763f88b6bfabf5133dd782df0eeb2c3f0011d5 Mon Sep 17 00:00:00 2001
+From: Xing Zheng <zhengxing@rock-chips.com>
+Date: Sat, 11 Sep 2021 16:51:15 +0800
+Subject: [PATCH 13/30] ASoC: rk3308_codec: recover default 0dB gain for DAC
+
+Signed-off-by: Xing Zheng <zhengxing@rock-chips.com>
+Change-Id: Ic3c108e6eed5894a69f06ad30e837d0513093335
+(cherry picked from commit 32d336b2a969c30139bbc277eb4952a4d924a45b)
+Reviewed-on: https://10.10.10.29/c/rk/kernel-stable/+/135017
+Reviewed-by: Jianqun Xu <jay.xu@rock-chips.com>
+Reviewed-by: Hans Yang <yhx@rock-chips.com>
+Tested-by: Hans Yang <yhx@rock-chips.com>
+---
+ sound/soc/codecs/rk3308_codec.c | 15 ++++++++-------
+ 1 file changed, 8 insertions(+), 7 deletions(-)
+
+diff --git a/sound/soc/codecs/rk3308_codec.c b/sound/soc/codecs/rk3308_codec.c
+index 2d9d7d9..38e5780 100644
+--- a/sound/soc/codecs/rk3308_codec.c
++++ b/sound/soc/codecs/rk3308_codec.c
+@@ -3857,26 +3857,27 @@ static int rk3308_codec_default_gains(struct rk3308_codec_priv *rk3308)
+ 	regmap_update_bits(rk3308->regmap, RK3308_DAC_ANA_CON12,
+ 			   RK3308_DAC_L_HPMIX_GAIN_MSK |
+ 			   RK3308_DAC_R_HPMIX_GAIN_MSK,
+-			   RK3308_DAC_L_HPMIX_GAIN_NDB_6 |
+-			   RK3308_DAC_R_HPMIX_GAIN_NDB_6);
++			   RK3308_DAC_L_HPMIX_GAIN_0DB |
++			   RK3308_DAC_R_HPMIX_GAIN_0DB);
+ 
+ 	/* Step 18, set HPOUT default gains */
+ 	regmap_update_bits(rk3308->regmap, RK3308_DAC_ANA_CON05,
+ 			   RK3308_DAC_L_HPOUT_GAIN_MSK,
+-			   RK3308_DAC_L_HPOUT_GAIN_NDB_39);
++			   RK3308_DAC_L_HPOUT_GAIN_0DB);
+ 	regmap_update_bits(rk3308->regmap, RK3308_DAC_ANA_CON06,
+ 			   RK3308_DAC_R_HPOUT_GAIN_MSK,
+-			   RK3308_DAC_R_HPOUT_GAIN_NDB_39);
++			   RK3308_DAC_R_HPOUT_GAIN_0DB);
+ 
+ 	/* Using the same gain to HPOUT LR channels */
+-	rk3308->hpout_l_dgain = RK3308_DAC_L_HPOUT_GAIN_NDB_39;
++	rk3308->hpout_l_dgain = RK3308_DAC_L_HPOUT_GAIN_0DB;
++	rk3308->hpout_r_dgain = RK3308_DAC_R_HPOUT_GAIN_0DB;
+ 
+ 	/* Step 19, set LINEOUT default gains */
+ 	regmap_update_bits(rk3308->regmap, RK3308_DAC_ANA_CON04,
+ 			   RK3308_DAC_L_LINEOUT_GAIN_MSK |
+ 			   RK3308_DAC_R_LINEOUT_GAIN_MSK,
+-			   RK3308_DAC_L_LINEOUT_GAIN_NDB_6 |
+-			   RK3308_DAC_R_LINEOUT_GAIN_NDB_6);
++			   RK3308_DAC_L_LINEOUT_GAIN_0DB |
++			   RK3308_DAC_R_LINEOUT_GAIN_0DB);
+ 
+ 	return 0;
+ }
+-- 
+2.7.4
+

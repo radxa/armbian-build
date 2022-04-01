@@ -1,0 +1,116 @@
+From 63f9722891e8bed4ae27e8889c5a252364ef0e92 Mon Sep 17 00:00:00 2001
+From: Jianqun Xu <jay.xu@rock-chips.com>
+Date: Wed, 20 Oct 2021 17:31:20 +0800
+Subject: [PATCH 09/19] pinctrl: rockchip: fix for rk3308bs drive strength
+
+Signed-off-by: Lin Jianhua <linjh@rock-chips.com>
+Change-Id: I9c5ce44d3759bccb3420f56af89c072b3f4c9358
+---
+ drivers/pinctrl/pinctrl-rockchip.c | 51 +++++++++++++++++++++++++++++++++++---
+ 1 file changed, 48 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/pinctrl/pinctrl-rockchip.c b/drivers/pinctrl/pinctrl-rockchip.c
+index 5f17159..bc5d275 100644
+--- a/drivers/pinctrl/pinctrl-rockchip.c
++++ b/drivers/pinctrl/pinctrl-rockchip.c
+@@ -64,6 +64,7 @@ enum rockchip_pin_drv_type {
+ 	DRV_TYPE_IO_1V8_ONLY,
+ 	DRV_TYPE_IO_1V8_3V0_AUTO,
+ 	DRV_TYPE_IO_3V3_ONLY,
++	DRV_TYPE_IO_SMIC,
+ 	DRV_TYPE_MAX
+ };
+ 
+@@ -2149,12 +2150,34 @@ static void rk3399_calc_drv_reg_and_bit(struct rockchip_pin_bank *bank,
+ 		*bit = (pin_num % 8) * 2;
+ }
+ 
++#define RK3308_SLEW_RATE_GRF_OFFSET		0x150
++#define RK3308_SLEW_RATE_BANK_STRIDE		16
++#define RK3308_SLEW_RATE_PINS_PER_GRF_REG	8
++
++static void rk3308_calc_slew_rate_reg_and_bit(struct rockchip_pin_bank *bank,
++					     int pin_num,
++					     struct regmap **regmap,
++					     int *reg, u8 *bit)
++{
++	struct rockchip_pinctrl_priv *priv = bank->priv;
++	int pins_per_reg;
++
++	*regmap = priv->regmap_base;
++	*reg = RK3308_SLEW_RATE_GRF_OFFSET;
++	*reg += (bank->bank_num) * RK3308_SLEW_RATE_BANK_STRIDE;
++	pins_per_reg = RK3308_SLEW_RATE_PINS_PER_GRF_REG;
++
++	*reg += ((pin_num / pins_per_reg) * 4);
++	*bit = pin_num % pins_per_reg;
++}
++
+ static int rockchip_perpin_drv_list[DRV_TYPE_MAX][8] = {
+ 	{ 2, 4, 8, 12, -1, -1, -1, -1 },
+ 	{ 3, 6, 9, 12, -1, -1, -1, -1 },
+ 	{ 5, 10, 15, 20, -1, -1, -1, -1 },
+ 	{ 4, 6, 8, 10, 12, 14, 16, 18 },
+-	{ 4, 7, 10, 13, 16, 19, 22, 26 }
++	{ 4, 7, 10, 13, 16, 19, 22, 26 },
++	{ 0, 2, 4, 6, 6, 8, 10, 12 }
+ };
+ 
+ static int rockchip_set_drive_perpin(struct rockchip_pin_bank *bank,
+@@ -2174,6 +2197,9 @@ static int rockchip_set_drive_perpin(struct rockchip_pin_bank *bank,
+ 
+ 	ctrl->drv_calc_reg(bank, pin_num, &regmap, &reg, &bit);
+ 
++	if (soc_is_rk3308bs())
++		drv_type = DRV_TYPE_IO_SMIC;
++
+ 	ret = -EINVAL;
+ 	for (i = 0; i < ARRAY_SIZE(rockchip_perpin_drv_list[drv_type]); i++) {
+ 		if (rockchip_perpin_drv_list[drv_type][i] == strength) {
+@@ -2191,6 +2217,25 @@ static int rockchip_set_drive_perpin(struct rockchip_pin_bank *bank,
+ 	}
+ 
+ 	switch (drv_type) {
++	case DRV_TYPE_IO_SMIC:
++		if (ctrl->type == RK3308) { /* RK3308B-S */
++			int regval = ret;
++
++			data = 0x3 << (bit + 16);
++			data |= ((regval & 0x3) << bit);
++
++			ret = regmap_write(regmap, reg, data);
++			if (ret < 0)
++				return ret;
++
++			rk3308_calc_slew_rate_reg_and_bit(bank, pin_num, &regmap, &reg, &bit);
++			data = BIT(bit + 16) | (((regval > 3) ? 1 : 0) << bit);
++
++			return regmap_write(regmap, reg, data);
++		}
++
++		dev_err(info->dev, "unsupported type DRV_TYPE_IO_SMIC\n");
++		return -EINVAL;
+ 	case DRV_TYPE_IO_1V8_3V0_AUTO:
+ 	case DRV_TYPE_IO_3V3_ONLY:
+ 		rmask_bits = RK3399_DRV_3BITS_PER_PIN;
+@@ -2665,7 +2710,7 @@ static int rk3308b_ctrl_data_re_init(struct rockchip_pin_ctrl *ctrl)
+ 	 * Special for rk3308b, where we need to replace the recalced
+ 	 * and routed arrays.
+ 	 */
+-	if (soc_is_rk3308b()) {
++	if (soc_is_rk3308b() || soc_is_rk3308bs()) {
+ 		ctrl->iomux_recalced = rk3308b_mux_recalced_data;
+ 		ctrl->niomux_recalced = ARRAY_SIZE(rk3308b_mux_recalced_data);
+ 		ctrl->iomux_routes = rk3308b_mux_route_data;
+@@ -2814,7 +2859,7 @@ static int rk3308b_soc_data_init(struct rockchip_pinctrl_priv *priv)
+ 	/*
+ 	 * Enable the special ctrl  of selected sources.
+ 	 */
+-	if (soc_is_rk3308b()) {
++	if (soc_is_rk3308b() || soc_is_rk3308bs()) {
+ 		ret = regmap_write(priv->regmap_base, RK3308B_GRF_SOC_CON13,
+ 				   RK3308B_GRF_I2C3_IOFUNC_SRC_CTRL |
+ 				   RK3308B_GRF_GPIO2A3_SEL_SRC_CTRL |
+-- 
+2.7.4
+

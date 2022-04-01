@@ -1,0 +1,79 @@
+From 821309c9dc3cd6695c420e4fbd02370aca28e168 Mon Sep 17 00:00:00 2001
+From: Xing Zheng <zhengxing@rock-chips.com>
+Date: Mon, 13 Sep 2021 18:40:37 +0800
+Subject: [PATCH 16/30] ASoC: rk3308_codec: fix the leak LINEOUT signal when
+ using HPOUT path
+
+Signed-off-by: Xing Zheng <zhengxing@rock-chips.com>
+Change-Id: Iac3e978e1bf7e1995e270feb7f96da077379b164
+Reviewed-on: https://10.10.10.29/c/rk/kernel-stable/+/136390
+Reviewed-by: Hans Yang <yhx@rock-chips.com>
+Tested-by: Hans Yang <yhx@rock-chips.com>
+---
+ sound/soc/codecs/rk3308_codec.c | 32 +++++++++++++++++++++++---------
+ 1 file changed, 23 insertions(+), 9 deletions(-)
+
+diff --git a/sound/soc/codecs/rk3308_codec.c b/sound/soc/codecs/rk3308_codec.c
+index a0470fa..ebf9fc3 100644
+--- a/sound/soc/codecs/rk3308_codec.c
++++ b/sound/soc/codecs/rk3308_codec.c
+@@ -1444,14 +1444,13 @@ static int rk3308_codec_digital_fadeout(struct rk3308_codec_priv *rk3308)
+ 
+ static int rk3308_codec_dac_lineout_enable(struct rk3308_codec_priv *rk3308)
+ {
+-	if (rk3308->codec_ver == ACODEC_VERSION_B) {
+-		/* Step 04 */
+-		regmap_update_bits(rk3308->regmap, RK3308_DAC_ANA_CON15,
+-				   RK3308_DAC_LINEOUT_POP_SOUND_L_MSK |
+-				   RK3308_DAC_LINEOUT_POP_SOUND_R_MSK,
+-				   RK3308_DAC_L_SEL_DC_FROM_INTERNAL |
+-				   RK3308_DAC_R_SEL_DC_FROM_INTERNAL);
+-	}
++	regmap_update_bits(rk3308->regmap, RK3308_DAC_ANA_CON15,
++			   RK3308_DAC_LINEOUT_POP_SOUND_L_MSK |
++			   RK3308_DAC_LINEOUT_POP_SOUND_R_MSK,
++			   RK3308_DAC_L_SEL_LINEOUT_FROM_INTERNAL |
++			   RK3308_DAC_R_SEL_LINEOUT_FROM_INTERNAL);
++
++	udelay(20);
+ 
+ 	/* Step 07 */
+ 	regmap_update_bits(rk3308->regmap, RK3308_DAC_ANA_CON04,
+@@ -1500,6 +1499,12 @@ static int rk3308_codec_dac_lineout_disable(struct rk3308_codec_priv *rk3308)
+ 			   RK3308_DAC_L_LINEOUT_DIS |
+ 			   RK3308_DAC_R_LINEOUT_DIS);
+ 
++	regmap_update_bits(rk3308->regmap, RK3308_DAC_ANA_CON15,
++			   RK3308_DAC_LINEOUT_POP_SOUND_L_MSK |
++			   RK3308_DAC_LINEOUT_POP_SOUND_R_MSK,
++			   RK3308_DAC_L_SEL_DC_FROM_INTERNAL |
++			   RK3308_DAC_R_SEL_DC_FROM_INTERNAL);
++
+ 	return 0;
+ }
+ 
+@@ -1773,11 +1778,20 @@ static int rk3308_codec_dac_enable(struct rk3308_codec_priv *rk3308)
+ 
+ 	if (rk3308->codec_ver >= ACODEC_VERSION_B) {
+ 		/* Step 10 */
+-		regmap_update_bits(rk3308->regmap, RK3308_DAC_ANA_CON15,
++		if (rk3308->dac_output == DAC_HPOUT) {
++			regmap_update_bits(rk3308->regmap, RK3308_DAC_ANA_CON15,
++				   RK3308_DAC_LINEOUT_POP_SOUND_L_MSK |
++				   RK3308_DAC_LINEOUT_POP_SOUND_R_MSK,
++				   RK3308_DAC_L_SEL_DC_FROM_INTERNAL |
++				   RK3308_DAC_R_SEL_DC_FROM_INTERNAL);
++		} else {
++			/* LINEOUT and LINEOUT + HPOUT */
++			regmap_update_bits(rk3308->regmap, RK3308_DAC_ANA_CON15,
+ 				   RK3308_DAC_LINEOUT_POP_SOUND_L_MSK |
+ 				   RK3308_DAC_LINEOUT_POP_SOUND_R_MSK,
+ 				   RK3308_DAC_L_SEL_LINEOUT_FROM_INTERNAL |
+ 				   RK3308_DAC_R_SEL_LINEOUT_FROM_INTERNAL);
++		}
+ 
+ 		udelay(20);
+ 	}
+-- 
+2.7.4
+

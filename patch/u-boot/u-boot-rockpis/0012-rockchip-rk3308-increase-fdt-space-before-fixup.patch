@@ -1,0 +1,37 @@
+From f3d847d99c64a53e42f6118db1be9189766cbc61 Mon Sep 17 00:00:00 2001
+From: Joseph Chen <chenjh@rock-chips.com>
+Date: Mon, 25 Oct 2021 06:24:57 +0000
+Subject: [PATCH 12/19] rockchip: rk3308: increase fdt space before fixup
+
+Fix return -FDT_ERR_NOSPACE.
+
+Signed-off-by: Joseph Chen <chenjh@rock-chips.com>
+Change-Id: I7e6d73fb514243ff70ce5a22a3ca712e1b5a277b
+(cherry picked from commit 65afc0201c411b38276a6059585815f2947c08bc)
+---
+ arch/arm/mach-rockchip/rk3308/rk3308.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/arch/arm/mach-rockchip/rk3308/rk3308.c b/arch/arm/mach-rockchip/rk3308/rk3308.c
+index a599bfe..cf3e0c6 100644
+--- a/arch/arm/mach-rockchip/rk3308/rk3308.c
++++ b/arch/arm/mach-rockchip/rk3308/rk3308.c
+@@ -4,6 +4,7 @@
+  * SPDX-License-Identifier:     GPL-2.0+
+  */
+ #include <common.h>
++#include <fdt_support.h>
+ #include <asm/io.h>
+ #include <asm/arch/cpu.h>
+ #include <asm/arch/grf_rk3308.h>
+@@ -434,6 +435,7 @@ static int fdt_fixup_thermal_zones(const void *blob)
+ int rk_board_fdt_fixup(const void *blob)
+ {
+ 	if (soc_is_rk3308bs()) {
++		fdt_increase_size((void *)blob, SZ_8K);
+ 		fdt_fixup_cpu_idle(blob);
+ 		fdt_fixup_cpu_opp_table(blob);
+ 		fdt_fixup_dmc_opp_table(blob);
+-- 
+2.7.4
+

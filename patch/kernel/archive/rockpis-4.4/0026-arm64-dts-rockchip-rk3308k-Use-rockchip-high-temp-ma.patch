@@ -1,0 +1,40 @@
+From a25e18d5fb5eb74238798a5938225d8a0d2fd1c7 Mon Sep 17 00:00:00 2001
+From: Finley Xiao <finley.xiao@rock-chips.com>
+Date: Tue, 19 Oct 2021 09:53:15 +0800
+Subject: [PATCH 26/30] arm64: dts: rockchip: rk3308k: Use
+ rockchip,high-temp-max-freq
+
+As the opp voltage may be changed if enable pvtm, it's better to use
+rockchip,high-temp-max-freq.
+
+Change-Id: If480a6ffa23efa9213b3b809f3cde320ce2a5ddd
+Signed-off-by: Finley Xiao <finley.xiao@rock-chips.com>
+Reviewed-on: https://10.10.10.29/c/rk/kernel-stable/+/137030
+Reviewed-by: Hans Yang <yhx@rock-chips.com>
+Tested-by: Hans Yang <yhx@rock-chips.com>
+---
+ arch/arm64/boot/dts/rockchip/rk3308k.dtsi | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3308k.dtsi b/arch/arm64/boot/dts/rockchip/rk3308k.dtsi
+index 5f9518d..a75cb8b 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3308k.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3308k.dtsi
+@@ -15,12 +15,12 @@
+ 
+ &cpu0_opp_table {
+ 	rockchip,high-temp = <55000>;
+-	rockchip,high-temp-max-volt = <1125000>;
++	rockchip,high-temp-max-freq = <1008000>;
+ };
+ 
+ &rk3308bs_cpu0_opp_table {
+ 	rockchip,high-temp = <55000>;
+-	rockchip,high-temp-max-volt = <1125000>;
++	rockchip,high-temp-max-freq = <1008000>;
+ };
+ 
+ &rockchip_suspend {
+-- 
+2.7.4
+

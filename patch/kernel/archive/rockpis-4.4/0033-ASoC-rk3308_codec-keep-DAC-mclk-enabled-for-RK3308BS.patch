@@ -1,0 +1,54 @@
+From 3df7e05c26bff3fc0205e72778dd5236890bf095 Mon Sep 17 00:00:00 2001
+From: Xing Zheng <zhengxing@rock-chips.com>
+Date: Mon, 13 Dec 2021 14:49:26 +0800
+Subject: [PATCH 2/3] ASoC: rk3308_codec: keep DAC mclk enabled for RK3308BS
+ codec version
+
+Since the new process version optimizes the design of the clock,
+part, we need to enable DAC mclk during codec detect headphone.
+
+Signed-off-by: Xing Zheng <zhengxing@rock-chips.com>
+Change-Id: Ic44077b9bae15640e916d1b6321b6fb7912fd7d8
+Reviewed-on: https://10.10.10.29/c/rk/kernel-stable/+/143581
+Reviewed-by: Hans Yang <yhx@rock-chips.com>
+Tested-by: Hans Yang <yhx@rock-chips.com>
+---
+ sound/soc/codecs/rk3308_codec.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/sound/soc/codecs/rk3308_codec.c b/sound/soc/codecs/rk3308_codec.c
+index 5ff96041e6da..1716353e6e7c 100644
+--- a/sound/soc/codecs/rk3308_codec.c
++++ b/sound/soc/codecs/rk3308_codec.c
+@@ -236,6 +236,8 @@ static bool handle_loopback(struct rk3308_codec_priv *rk3308);
+ 
+ static int check_micbias(int micbias);
+ 
++static void rk3308_codec_dac_mclk_enable(struct rk3308_codec_priv *rk3308);
++
+ static int rk3308_codec_micbias_enable(struct rk3308_codec_priv *rk3308,
+ 				       int micbias);
+ static int rk3308_codec_micbias_disable(struct rk3308_codec_priv *rk3308);
+@@ -2241,6 +2243,9 @@ static int rk3308_codec_power_off(struct rk3308_codec_priv *rk3308)
+ 
+ static int rk3308_codec_headset_detect_enable(struct rk3308_codec_priv *rk3308)
+ {
++	if (rk3308->codec_ver == ACODEC_VERSION_C)
++		rk3308_codec_dac_mclk_enable(rk3308);
++
+ 	/*
+ 	 * Set ACODEC_DAC_ANA_CON0[1] to 0x1, to enable the headset insert
+ 	 * detection
+@@ -3044,6 +3049,9 @@ static void rk3308_codec_adc_mclk_enable(struct rk3308_codec_priv *rk3308)
+ 
+ static void rk3308_codec_dac_mclk_disable(struct rk3308_codec_priv *rk3308)
+ {
++	if (!rk3308->no_hp_det && rk3308->codec_ver == ACODEC_VERSION_C)
++		return;
++
+ 	regmap_update_bits(rk3308->regmap, RK3308_GLB_CON,
+ 			   RK3308_DAC_MCLK_MSK,
+ 			   RK3308_DAC_MCLK_DIS);
+-- 
+2.17.1
+

@@ -1,0 +1,50 @@
+From b9e40c5aa6fecc28300017bae54fe7489cb76b40 Mon Sep 17 00:00:00 2001
+From: Joseph Chen <chenjh@rock-chips.com>
+Date: Wed, 4 Aug 2021 11:33:58 +0800
+Subject: [PATCH 01/19] rockchip: add soc version for rk3308bs
+
+Signed-off-by: Joseph Chen <chenjh@rock-chips.com>
+Change-Id: Ic634a33f36d4633a47232ba8c34910aa3dff89e7
+(cherry picked from commit eac46afef5b12647683085547b78c166f85085cc)
+---
+ arch/arm/include/asm/arch-rockchip/cpu.h | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/include/asm/arch-rockchip/cpu.h b/arch/arm/include/asm/arch-rockchip/cpu.h
+index 110c4ad..f380292 100644
+--- a/arch/arm/include/asm/arch-rockchip/cpu.h
++++ b/arch/arm/include/asm/arch-rockchip/cpu.h
+@@ -23,6 +23,7 @@
+ #define ROCKCHIP_SOC_RK3288W    (ROCKCHIP_CPU_RK3288 | 0x01)
+ #define ROCKCHIP_SOC_RK3308	(ROCKCHIP_CPU_RK3308 | 0x00)
+ #define ROCKCHIP_SOC_RK3308B	(ROCKCHIP_CPU_RK3308 | 0x01)
++#define ROCKCHIP_SOC_RK3308BS	(ROCKCHIP_CPU_RK3308 | 0x02)
+ 
+ static inline int rockchip_soc_id(void)
+ {
+@@ -38,9 +39,14 @@ static inline int rockchip_soc_id(void)
+ 	 * RK3308:  0xcea (3306 in decimal)
+ 	 * RK3308B: 0x3308
+ 	 *
++	 * RK3308BS: 0x3308c
+ 	 */
+-	if (readl(0xFF000800) == 3306)
++	u32 v = readl(0xFF000800);
++
++	if (v == 3306)
+ 		return ROCKCHIP_SOC_RK3308;
++	else if (v == 0x3308c)
++		return ROCKCHIP_SOC_RK3308BS;
+ 	else
+ 		return ROCKCHIP_SOC_RK3308B;
+ #else
+@@ -65,5 +71,6 @@ ROCKCHIP_SOC(rk3288, RK3288)
+ ROCKCHIP_SOC(rk3288w, RK3288W)
+ ROCKCHIP_SOC(rk3308, RK3308)
+ ROCKCHIP_SOC(rk3308b, RK3308B)
++ROCKCHIP_SOC(rk3308bs, RK3308BS)
+ 
+ #endif
+-- 
+2.7.4
+

@@ -1,0 +1,36 @@
+From 921b65ddc1f1de544e7384b02a17b26ca98fd86e Mon Sep 17 00:00:00 2001
+From: Joseph Chen <chenjh@rock-chips.com>
+Date: Tue, 20 Jul 2021 20:15:54 +0800
+Subject: [PATCH 18/18] regulator: fixed: Enable gpio when requested
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This patch refers to upstream commit:
+(e88d6979d1 regulator: fix: enable gpio when requested）
+
+Signed-off-by: Joseph Chen <chenjh@rock-chips.com>
+Change-Id: Ide388dfc084c43675d8e6b4c7b97fb82f540da2c
+---
+ drivers/power/regulator/fixed.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/power/regulator/fixed.c b/drivers/power/regulator/fixed.c
+index 97b4a98bf0..c35ca2a18e 100644
+--- a/drivers/power/regulator/fixed.c
++++ b/drivers/power/regulator/fixed.c
+@@ -36,8 +36,9 @@ static int fixed_regulator_ofdata_to_platdata(struct udevice *dev)
+ 
+ 	/* Set type to fixed */
+ 	uc_pdata->type = REGULATOR_TYPE_FIXED;
+-
+-	if (dev_read_bool(dev, "enable-active-high"))
++	if (!dev_read_bool(dev, "enable-active-high"))
++		flags |= GPIOD_ACTIVE_LOW;
++	if (dev_read_bool(dev, "regulator-boot-on"))
+ 		flags |= GPIOD_IS_OUT_ACTIVE;
+ 
+ 	/* Get fixed regulator optional enable GPIO desc */
+-- 
+2.17.1
+

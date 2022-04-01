@@ -1,0 +1,630 @@
+From e5ae5f7e86ace456ec67a0a472264b91aa83031d Mon Sep 17 00:00:00 2001
+From: Xing Zheng <zhengxing@rock-chips.com>
+Date: Fri, 20 Aug 2021 15:51:22 +0800
+Subject: [PATCH 12/30] ASoC: rk3308_codec: update some codec features for
+ RK3308BS
+
+And clean up the brackets of macro variables.
+
+Signed-off-by: Xing Zheng <zhengxing@rock-chips.com>
+Change-Id: I0617049c9ed494ba17c1d548413e49355c9bf01f
+(cherry picked from commit 2b92969663c3328ddba4e8ba11e54bd019e084cf)
+Reviewed-on: https://10.10.10.29/c/rk/kernel-stable/+/135016
+Reviewed-by: Jianqun Xu <jay.xu@rock-chips.com>
+Reviewed-by: Hans Yang <yhx@rock-chips.com>
+Tested-by: Hans Yang <yhx@rock-chips.com>
+---
+ sound/soc/codecs/rk3308_codec.c |  82 ++++++++++++++------
+ sound/soc/codecs/rk3308_codec.h | 160 ++++++++++++++++++++++++++++++++++------
+ 2 files changed, 195 insertions(+), 47 deletions(-)
+
+diff --git a/sound/soc/codecs/rk3308_codec.c b/sound/soc/codecs/rk3308_codec.c
+index 95e4af6..2d9d7d9 100644
+--- a/sound/soc/codecs/rk3308_codec.c
++++ b/sound/soc/codecs/rk3308_codec.c
+@@ -95,6 +95,7 @@
+ 
+ #define ACODEC_VERSION_A			0xa
+ #define ACODEC_VERSION_B			0xb
++#define ACODEC_VERSION_C			0xc
+ 
+ enum {
+ 	ACODEC_TO_I2S2_8CH = 0,
+@@ -1464,15 +1465,25 @@ static int rk3308_set_dai_fmt(struct snd_soc_dai *codec_dai,
+ 	case SND_SOC_DAIFMT_CBS_CFS:
+ 		adc_aif2 |= RK3308_ADC_IO_MODE_SLAVE;
+ 		adc_aif2 |= RK3308_ADC_MODE_SLAVE;
+-		dac_aif2 |= RK3308_DAC_IO_MODE_SLAVE;
+-		dac_aif2 |= RK3308_DAC_MODE_SLAVE;
++		if (rk3308->codec_ver == ACODEC_VERSION_C) {
++			dac_aif2 |= RK3308BS_DAC_IO_MODE_SLAVE;
++			dac_aif2 |= RK3308BS_DAC_MODE_SLAVE;
++		} else {
++			dac_aif2 |= RK3308_DAC_IO_MODE_SLAVE;
++			dac_aif2 |= RK3308_DAC_MODE_SLAVE;
++		}
+ 		is_master = 0;
+ 		break;
+ 	case SND_SOC_DAIFMT_CBM_CFM:
+ 		adc_aif2 |= RK3308_ADC_IO_MODE_MASTER;
+ 		adc_aif2 |= RK3308_ADC_MODE_MASTER;
+-		dac_aif2 |= RK3308_DAC_IO_MODE_MASTER;
+-		dac_aif2 |= RK3308_DAC_MODE_MASTER;
++		if (rk3308->codec_ver == ACODEC_VERSION_C) {
++			dac_aif2 |= RK3308BS_DAC_IO_MODE_MASTER;
++			dac_aif2 |= RK3308BS_DAC_MODE_MASTER;
++		} else {
++			dac_aif2 |= RK3308_DAC_IO_MODE_MASTER;
++			dac_aif2 |= RK3308_DAC_MODE_MASTER;
++		}
+ 		is_master = 1;
+ 		break;
+ 	default:
+@@ -1566,11 +1577,19 @@ static int rk3308_set_dai_fmt(struct snd_soc_dai *codec_dai,
+ 			   RK3308_DAC_I2S_LRC_POL_MSK |
+ 			   RK3308_DAC_I2S_MODE_MSK,
+ 			   dac_aif1);
+-	regmap_update_bits(rk3308->regmap, RK3308_DAC_DIG_CON02,
++	if (rk3308->codec_ver == ACODEC_VERSION_C) {
++		regmap_update_bits(rk3308->regmap, RK3308_DAC_DIG_CON02,
++			   RK3308BS_DAC_IO_MODE_MSK |
++			   RK3308BS_DAC_MODE_MSK |
++			   RK3308_DAC_I2S_BIT_CLK_POL_MSK,
++			   dac_aif2);
++	} else {
++		regmap_update_bits(rk3308->regmap, RK3308_DAC_DIG_CON02,
+ 			   RK3308_DAC_IO_MODE_MSK |
+ 			   RK3308_DAC_MODE_MSK |
+ 			   RK3308_DAC_I2S_BIT_CLK_POL_MSK,
+ 			   dac_aif2);
++	}
+ 
+ 	return 0;
+ }
+@@ -2089,7 +2108,7 @@ static int rk3308_codec_dac_enable(struct rk3308_codec_priv *rk3308)
+ 		udelay(20);
+ 	}
+ 
+-	if (rk3308->codec_ver == ACODEC_VERSION_B &&
++	if (rk3308->codec_ver >= ACODEC_VERSION_B &&
+ 	    (rk3308->dac_output == DAC_LINEOUT ||
+ 	     rk3308->dac_output == DAC_LINEOUT_HPOUT)) {
+ 		/* Step 04 */
+@@ -2160,7 +2179,7 @@ static int rk3308_codec_dac_enable(struct rk3308_codec_priv *rk3308)
+ 		udelay(20);
+ 	}
+ 
+-	if (rk3308->codec_ver == ACODEC_VERSION_B) {
++	if (rk3308->codec_ver >= ACODEC_VERSION_B) {
+ 		/* Step 10 */
+ 		regmap_update_bits(rk3308->regmap, RK3308_DAC_ANA_CON15,
+ 				   RK3308_DAC_LINEOUT_POP_SOUND_L_MSK |
+@@ -2364,7 +2383,7 @@ static int rk3308_codec_dac_disable(struct rk3308_codec_priv *rk3308)
+ 			   RK3308_DAC_HPOUT_POP_SOUND_R_INIT);
+ 
+ 	/* Step 15 */
+-	if (rk3308->codec_ver == ACODEC_VERSION_B &&
++	if (rk3308->codec_ver >= ACODEC_VERSION_B &&
+ 	    (rk3308->dac_output == DAC_LINEOUT ||
+ 	     rk3308->dac_output == DAC_LINEOUT_HPOUT)) {
+ 		regmap_update_bits(rk3308->regmap, RK3308_DAC_ANA_CON15,
+@@ -2432,7 +2451,7 @@ static int rk3308_codec_power_on(struct rk3308_codec_priv *rk3308)
+ 			   RK3308_DAC_HPOUT_POP_SOUND_R_MSK,
+ 			   RK3308_DAC_HPOUT_POP_SOUND_R_INIT);
+ 
+-	if (rk3308->codec_ver == ACODEC_VERSION_B) {
++	if (rk3308->codec_ver >= ACODEC_VERSION_B) {
+ 		/*
+ 		 * 2. Configure ACODEC_DAC_ANA_CON15[1:0] and
+ 		 *    ACODEC_DAC_ANA_CON15[5:4] to 0x1, to setup dc voltage of
+@@ -2453,7 +2472,7 @@ static int rk3308_codec_power_on(struct rk3308_codec_priv *rk3308)
+ 			   RK3308_ADC_CURRENT_CHARGE_MSK,
+ 			   RK3308_ADC_SEL_I(0x1));
+ 
+-	if (rk3308->codec_ver == ACODEC_VERSION_B) {
++	if (rk3308->codec_ver >= ACODEC_VERSION_B) {
+ 		/*
+ 		 * 4. Configure the register ACODEC_ADC_ANA_CON14[3:0] to
+ 		 *    4’b0001.
+@@ -2472,7 +2491,7 @@ static int rk3308_codec_power_on(struct rk3308_codec_priv *rk3308)
+ 	regmap_update_bits(rk3308->regmap, RK3308_ADC_ANA_CON10(0),
+ 			   RK3308_ADC_REF_EN, RK3308_ADC_REF_EN);
+ 
+-	if (rk3308->codec_ver == ACODEC_VERSION_B) {
++	if (rk3308->codec_ver >= ACODEC_VERSION_B) {
+ 		/*
+ 		 * 7. Configure the register ACODEC_ADC_ANA_CON14[4] to 0x1 to
+ 		 *    setup reference voltage
+@@ -2494,7 +2513,7 @@ static int rk3308_codec_power_on(struct rk3308_codec_priv *rk3308)
+ 		udelay(200);
+ 	}
+ 
+-	if (rk3308->codec_ver == ACODEC_VERSION_B) {
++	if (rk3308->codec_ver >= ACODEC_VERSION_B) {
+ 		/*
+ 		 * 9. Change the register ACODEC_ADC_ANA_CON14[3:0] from the 0x1
+ 		 *    to 0xf step by step or configure the
+@@ -2519,7 +2538,7 @@ static int rk3308_codec_power_on(struct rk3308_codec_priv *rk3308)
+ 	regmap_update_bits(rk3308->regmap, RK3308_ADC_ANA_CON10(0),
+ 			   RK3308_ADC_CURRENT_CHARGE_MSK, 0x7c);
+ 
+-	if (rk3308->codec_ver == ACODEC_VERSION_B) {
++	if (rk3308->codec_ver >= ACODEC_VERSION_B) {
+ 		/*
+ 		 * 12. Configure the register ACODEC_DAC_ANA_CON14[6:0] to the
+ 		 *     appropriate value(expect 0x0) for reducing power.
+@@ -2547,7 +2566,7 @@ static int rk3308_codec_power_off(struct rk3308_codec_priv *rk3308)
+ 			   RK3308_ADC_CURRENT_CHARGE_MSK,
+ 			   RK3308_ADC_SEL_I(0x1));
+ 
+-	if (rk3308->codec_ver == ACODEC_VERSION_B) {
++	if (rk3308->codec_ver >= ACODEC_VERSION_B) {
+ 		/*
+ 		 * 2. Configure the register ACODEC_DAC_ANA_CON14[3:0] to
+ 		 *    4’b0001.
+@@ -2562,7 +2581,7 @@ static int rk3308_codec_power_off(struct rk3308_codec_priv *rk3308)
+ 			   RK3308_ADC_REF_EN,
+ 			   RK3308_ADC_REF_DIS);
+ 
+-	if (rk3308->codec_ver == ACODEC_VERSION_B) {
++	if (rk3308->codec_ver >= ACODEC_VERSION_B) {
+ 		/* 4. Configure the register ACODEC_DAC_ANA_CON14[7] to 0x0 */
+ 		regmap_update_bits(rk3308->regmap, RK3308_DAC_ANA_CON14,
+ 				   RK3308_DAC_VCM_LINEOUT_EN,
+@@ -2581,7 +2600,7 @@ static int rk3308_codec_power_off(struct rk3308_codec_priv *rk3308)
+ 		udelay(200);
+ 	}
+ 
+-	if (rk3308->codec_ver == ACODEC_VERSION_B) {
++	if (rk3308->codec_ver >= ACODEC_VERSION_B) {
+ 		/*
+ 		 * 6. Change the register ACODEC_DAC_ANA_CON14[3:0] from the 0x1
+ 		 *    to 0xf step by step or configure the
+@@ -2802,7 +2821,7 @@ static int check_micbias(int micbias)
+ static bool handle_loopback(struct rk3308_codec_priv *rk3308)
+ {
+ 	/* The version B doesn't need to handle loopback. */
+-	if (rk3308->codec_ver == ACODEC_VERSION_B)
++	if (rk3308->codec_ver >= ACODEC_VERSION_B)
+ 		return false;
+ 
+ 	switch (rk3308->loopback_grp) {
+@@ -3822,6 +3841,17 @@ static int rk3308_codec_default_gains(struct rk3308_codec_priv *rk3308)
+ 				   RK3308_ADC_CH2_ALC_GAIN_0DB);
+ 	}
+ 
++	if (rk3308->codec_ver == ACODEC_VERSION_C) {
++		/* recover ADC digtial volume to 0dB */
++		for (grp = 0; grp < ADC_LR_GROUP_MAX; grp++) {
++			/* DIG_VOL: -97dB ~ +32dB  */
++			regmap_write(rk3308->regmap, RK3308BS_ADC_DIG_CON05(grp),
++					   RK3308_ADC_DIG_VOL_CON_L(RK3308_ADC_DIG_VOL_0DB));
++			regmap_write(rk3308->regmap, RK3308BS_ADC_DIG_CON06(grp),
++					   RK3308_ADC_DIG_VOL_CON_R(RK3308_ADC_DIG_VOL_0DB));
++		}
++	}
++
+ 	/* Prepare DAC gains */
+ 	/* Step 15, set HPMIX default gains */
+ 	regmap_update_bits(rk3308->regmap, RK3308_DAC_ANA_CON12,
+@@ -3908,7 +3938,7 @@ static int rk3308_codec_dapm_mic_gains(struct rk3308_codec_priv *rk3308)
+ {
+ 	int ret;
+ 
+-	if (rk3308->codec_ver == ACODEC_VERSION_B) {
++	if (rk3308->codec_ver >= ACODEC_VERSION_B) {
+ 		ret = snd_soc_add_codec_controls(rk3308->codec,
+ 						 mic_gains_b,
+ 						 ARRAY_SIZE(mic_gains_b));
+@@ -4054,12 +4084,15 @@ static void rk3308_codec_hpdetect_work(struct work_struct *work)
+ {
+ 	struct rk3308_codec_priv *rk3308 =
+ 		container_of(work, struct rk3308_codec_priv, hpdet_work.work);
+-	unsigned int val;
++	unsigned int val, headphone_con = RK3308_CODEC_HEADPHONE_CON;
+ 	int need_poll = 0, need_irq = 0;
+ 	int need_report = 0, report_type = 0;
+ 	int dac_output = DAC_LINEOUT;
+ 
+-	if (rk3308->codec_ver == ACODEC_VERSION_B) {
++	if (rk3308->codec_ver == ACODEC_VERSION_C)
++		headphone_con = RK3308BS_CODEC_HEADPHONE_CON;
++
++	if (rk3308->codec_ver >= ACODEC_VERSION_B) {
+ 		/* Check headphone plugged/unplugged directly. */
+ 		regmap_read(rk3308->detect_grf,
+ 			    DETECT_GRF_ACODEC_HPDET_STATUS, &val);
+@@ -4100,7 +4133,7 @@ static void rk3308_codec_hpdetect_work(struct work_struct *work)
+ 	}
+ 
+ 	/* Check headphone unplugged via poll. */
+-	regmap_read(rk3308->regmap, RK3308_DAC_DIG_CON14, &val);
++	regmap_read(rk3308->regmap, headphone_con, &val);
+ 
+ 	if (rk3308->hp_jack_reversed) {
+ 		if (!val) {
+@@ -4667,6 +4700,9 @@ static int rk3308_codec_get_version(struct rk3308_codec_priv *rk3308)
+ 	case 0x3308:
+ 		rk3308->codec_ver = ACODEC_VERSION_B;
+ 		break;
++	case 0x3308c:
++		rk3308->codec_ver = ACODEC_VERSION_C;
++		break;
+ 	default:
+ 		pr_err("Unknown chip_id: %d / 0x%x\n", chip_id, chip_id);
+ 		return -EFAULT;
+@@ -4884,7 +4920,7 @@ static int rk3308_platform_probe(struct platform_device *pdev)
+ 	if (!rk3308->no_hp_det) {
+ 		int index = 0;
+ 
+-		if (rk3308->codec_ver == ACODEC_VERSION_B)
++		if (rk3308->codec_ver >= ACODEC_VERSION_B)
+ 			index = 1;
+ 
+ 		rk3308->irq = platform_get_irq(pdev, index);
+@@ -4905,7 +4941,7 @@ static int rk3308_platform_probe(struct platform_device *pdev)
+ 			goto failed;
+ 		}
+ 
+-		if (rk3308->codec_ver == ACODEC_VERSION_B) {
++		if (rk3308->codec_ver >= ACODEC_VERSION_B) {
+ 			rk3308->detect_grf =
+ 				syscon_regmap_lookup_by_phandle(np, "rockchip,detect-grf");
+ 			if (IS_ERR(rk3308->detect_grf)) {
+diff --git a/sound/soc/codecs/rk3308_codec.h b/sound/soc/codecs/rk3308_codec.h
+index d5557a7..b6c80378 100644
+--- a/sound/soc/codecs/rk3308_codec.h
++++ b/sound/soc/codecs/rk3308_codec.h
+@@ -27,7 +27,8 @@
+ #define ACODEC_ADC_I2S_CTL1			0x08 /* REG 0x02 */
+ #define ACODEC_ADC_BIST_MODE_SEL		0x0c /* REG 0x03 */
+ #define ACODEC_ADC_HPF_PATH			0x10 /* REG 0x04 */
+-/* Resevred REG 0x05 ~ 0x06 */
++#define ACODEC_S_ADC_DIG_VOL_CON_L		0x14 /* REG 0x05 */
++#define ACODEC_S_ADC_DIG_VOL_CON_R		0x18 /* REG 0x06 */
+ #define ACODEC_ADC_DATA_PATH			0x1c /* REG 0x07 */
+ /* Resevred REG 0x08 ~ 0x0f */
+ 
+@@ -42,7 +43,8 @@
+ #define ACODEC_ADC_PGA_AGC_L_LO_MIN		0x5c /* REG 0x17 */
+ #define ACODEC_ADC_PGA_AGC_L_HI_MIN		0x60 /* REG 0x18 */
+ #define ACODEC_ADC_PGA_AGC_L_CTL5		0x64 /* REG 0x19 */
+-/* Resevred REG 0x1a ~ 0x1b */
++/* Resevred REG 0x1a */
++#define ACODEC_S_ADC_PEAK_DET_VALUE_DEC_RATE_L	0x6c /* REG 0x1b */
+ #define ACODEC_ADC_AGC_L_RO_GAIN		0x70 /* REG 0x1c */
+ 
+ /* REG 0x20 ~ 0x2c are used to configure AGC of Right channel (ALC2) */
+@@ -56,7 +58,8 @@
+ #define ACODEC_ADC_PGA_AGC_R_LO_MIN		0x9c /* REG 0x27 */
+ #define ACODEC_ADC_PGA_AGC_R_HI_MIN		0xa0 /* REG 0x28 */
+ #define ACODEC_ADC_PGA_AGC_R_CTL5		0xa4 /* REG 0x29 */
+-/* Resevred REG 0x2a ~ 0x2b */
++/* Resevred REG 0x2a */
++#define ACODEC_S_ADC_PEAK_DET_VALUE_DEC_RATE_R	0xac /* REG 0x2b */
+ #define ACODEC_ADC_AGC_R_RO_GAIN		0xb0 /* REG 0x2c */
+ 
+ /* DAC DIGITAL REGISTERS */
+@@ -65,12 +68,20 @@
+ #define ACODEC_DAC_BIST_MODE_SEL		0x0c /* REG 0x03 */
+ #define ACODEC_DAC_DIGITAL_GAIN			0x10 /* REG 0x04 */
+ #define ACODEC_DAC_DATA_SEL			0x14 /* REG 0x05 */
+-/* Resevred REG 0x06 ~ 0x09 */
++/* Resevred REG 0x06 ~ 0x08 */
+ #define ACODEC_DAC_DATA_HI			0x28 /* REG 0x0a */
+ #define ACODEC_DAC_DATA_LO			0x2c /* REG 0x0b */
+-/* Resevred REG 0x0c */
+-#define ACODEC_DAC_HPDET_DELAYTIME		0x34 /* REG 0x0d */
++
++#define ACODEC_DAC_HPDET_DELAYTIME_HI		0x30 /* REG 0x0c */
++#define ACODEC_DAC_HPDET_DELAYTIME_LO		0x34 /* REG 0x0d */
+ #define ACODEC_DAC_HPDET_STATUS			0x38 /* REG 0x0e, Read-only */
++
++#define ACODEC_S_DAC_DATA_HI			0x24 /* REG 0x09 */
++#define ACODEC_S_DAC_DATA_LO			0x28 /* REG 0x0a */
++#define ACODEC_S_DAC_HPDET_DELAYTIME_HI		0x2c /* REG 0x0b */
++#define ACODEC_S_DAC_HPDET_DELAYTIME_LO		0x30 /* REG 0x0c */
++#define ACODEC_S_DAC_HPDET_STATUS		0x34 /* REG 0x0d, Read-only */
++
+ /* Resevred REG 0x0f */
+ 
+ /* ADC ANALOG REGISTERS */
+@@ -83,8 +94,8 @@
+ #define ACODEC_ADC_ANA_CTL1			0x18 /* REG 0x06 */
+ #define ACODEC_ADC_ANA_CTL2			0x1c /* REG 0x07 */
+ #define ACODEC_ADC_ANA_CTL3			0x20 /* REG 0x08 */
+-/* Resevred REG 0x09 */
+-#define ACODEC_ADC_ANA_CTL4			0x28 /* REG 0x0a */
++#define ACODEC_S_ADC_ANA_CTL4			0x24 /* REG 0x09 */
++#define ACODEC_ADC_ANA_CTL5			0x28 /* REG 0x0a */
+ #define ACODEC_ADC_ANA_ALC_PGA			0x2c /* REG 0x0b */
+ /* Resevred REG 0x0c ~ 0x0f */
+ 
+@@ -126,7 +137,9 @@
+ #define RK3308_ADC_DIG_CON02(ch)		(RK3308_ADC_DIG_OFFSET(ch) + ACODEC_ADC_I2S_CTL1)
+ #define RK3308_ADC_DIG_CON03(ch)		(RK3308_ADC_DIG_OFFSET(ch) + ACODEC_ADC_BIST_MODE_SEL)
+ #define RK3308_ADC_DIG_CON04(ch)		(RK3308_ADC_DIG_OFFSET(ch) + ACODEC_ADC_HPF_PATH)
+-#define RK3308_ADC_DIG_CON07(ch)		(RK3308_ADC_DIG_OFFSET(ch) + ACODEC_ADC_DATA_PATH)
++#define RK3308BS_ADC_DIG_CON05(ch)		(RK3308_ADC_DIG_OFFSET(ch) + ACODEC_S_ADC_DIG_VOL_CON_L)
++#define RK3308BS_ADC_DIG_CON06(ch)		(RK3308_ADC_DIG_OFFSET(ch) + ACODEC_S_ADC_DIG_VOL_CON_R)
++#define RK3308_ADC_DIG_CON07(ch)		(RK3308_ADC_DIG_OFFSET(ch) + ACODEC_ADC_DATA_PATH) /* Removed from S */
+ 
+ #define RK3308_ALC_L_DIG_CON00(ch)		(RK3308_ADC_DIG_OFFSET(ch) + ACODEC_ADC_PGA_AGC_L_CTL0)
+ #define RK3308_ALC_L_DIG_CON01(ch)		(RK3308_ADC_DIG_OFFSET(ch) + ACODEC_ADC_PGA_AGC_L_CTL1)
+@@ -138,6 +151,7 @@
+ #define RK3308_ALC_L_DIG_CON07(ch)		(RK3308_ADC_DIG_OFFSET(ch) + ACODEC_ADC_PGA_AGC_L_LO_MIN)
+ #define RK3308_ALC_L_DIG_CON08(ch)		(RK3308_ADC_DIG_OFFSET(ch) + ACODEC_ADC_PGA_AGC_L_HI_MIN)
+ #define RK3308_ALC_L_DIG_CON09(ch)		(RK3308_ADC_DIG_OFFSET(ch) + ACODEC_ADC_PGA_AGC_L_CTL5)
++#define RK3308BS_ALC_L_DIG_CON11(ch)		(RK3308_ADC_DIG_OFFSET(ch) + ACODEC_S_ADC_PEAK_DET_VALUE_DEC_RATE_L)
+ #define RK3308_ALC_L_DIG_CON12(ch)		(RK3308_ADC_DIG_OFFSET(ch) + ACODEC_ADC_AGC_L_RO_GAIN)
+ 
+ #define RK3308_ALC_R_DIG_CON00(ch)		(RK3308_ADC_DIG_OFFSET(ch) + ACODEC_ADC_PGA_AGC_R_CTL0)
+@@ -150,6 +164,7 @@
+ #define RK3308_ALC_R_DIG_CON07(ch)		(RK3308_ADC_DIG_OFFSET(ch) + ACODEC_ADC_PGA_AGC_R_LO_MIN)
+ #define RK3308_ALC_R_DIG_CON08(ch)		(RK3308_ADC_DIG_OFFSET(ch) + ACODEC_ADC_PGA_AGC_R_HI_MIN)
+ #define RK3308_ALC_R_DIG_CON09(ch)		(RK3308_ADC_DIG_OFFSET(ch) + ACODEC_ADC_PGA_AGC_R_CTL5)
++#define RK3308BS_ALC_R_DIG_CON11(ch)		(RK3308_ADC_DIG_OFFSET(ch) + ACODEC_S_ADC_PEAK_DET_VALUE_DEC_RATE_R)
+ #define RK3308_ALC_R_DIG_CON12(ch)		(RK3308_ADC_DIG_OFFSET(ch) + ACODEC_ADC_AGC_R_RO_GAIN)
+ 
+ /* DAC DIGITAL REGISTERS */
+@@ -159,12 +174,26 @@
+ #define RK3308_DAC_DIG_CON02			(RK3308_DAC_DIG_OFFSET + ACODEC_DAC_I2S_CTL1)
+ #define RK3308_DAC_DIG_CON03			(RK3308_DAC_DIG_OFFSET + ACODEC_DAC_BIST_MODE_SEL)
+ #define RK3308_DAC_DIG_CON04			(RK3308_DAC_DIG_OFFSET + ACODEC_DAC_DIGITAL_GAIN)
++#define RK3308BS_DAC_DIG_CON04			(RK3308_DAC_DIG_OFFSET + ACODEC_DAC_DIGITAL_GAIN)
+ #define RK3308_DAC_DIG_CON05			(RK3308_DAC_DIG_OFFSET + ACODEC_DAC_DATA_SEL)
++#define RK3308BS_DAC_DIG_CON05			(RK3308_DAC_DIG_OFFSET + ACODEC_DAC_DATA_SEL)
++
+ #define RK3308_DAC_DIG_CON10			(RK3308_DAC_DIG_OFFSET + ACODEC_DAC_DATA_HI)
+ #define RK3308_DAC_DIG_CON11			(RK3308_DAC_DIG_OFFSET + ACODEC_DAC_DATA_LO)
+-#define RK3308_DAC_DIG_CON13			(RK3308_DAC_DIG_OFFSET + ACODEC_DAC_HPDET_DELAYTIME)
++
++#define RK3308_DAC_DIG_CON12			(RK3308_DAC_DIG_OFFSET + ACODEC_DAC_HPDET_DELAYTIME_HI)
++#define RK3308_DAC_DIG_CON13			(RK3308_DAC_DIG_OFFSET + ACODEC_DAC_HPDET_DELAYTIME_LO)
+ #define RK3308_DAC_DIG_CON14			(RK3308_DAC_DIG_OFFSET + ACODEC_DAC_HPDET_STATUS)
+ 
++#define RK3308BS_DAC_DIG_CON09			(RK3308_DAC_DIG_OFFSET + ACODEC_S_DAC_DATA_HI)
++#define RK3308BS_DAC_DIG_CON10			(RK3308_DAC_DIG_OFFSET + ACODEC_S_DAC_DATA_LO)
++#define RK3308BS_DAC_DIG_CON11			(RK3308_DAC_DIG_OFFSET + ACODEC_S_DAC_DELAY_TIME_DET_HI)
++#define RK3308BS_DAC_DIG_CON12			(RK3308_DAC_DIG_OFFSET + ACODEC_S_DAC_DELAY_TIME_DET_LO)
++#define RK3308BS_DAC_DIG_CON13			(RK3308_DAC_DIG_OFFSET + ACODEC_S_DAC_HPDET_STATUS)
++
++#define RK3308_CODEC_HEADPHONE_CON		RK3308_DAC_DIG_CON14
++#define RK3308BS_CODEC_HEADPHONE_CON		RK3308BS_DAC_DIG_CON13
++
+ /* ADC ANALOG REGISTERS */
+ /*
+  * The ADC group are 0 ~ 3, that control:
+@@ -174,7 +203,7 @@
+  * CH2: left_2(ADC5) and right_2(ADC6)
+  * CH3: left_3(ADC7) and right_3(ADC8)
+  */
+-#define RK3308_ADC_ANA_OFFSET(ch)		((ch & 0x3) * 0x40 + 0x340)
++#define RK3308_ADC_ANA_OFFSET(ch)		(((ch) & 0x3) * 0x40 + 0x340)
+ 
+ #define RK3308_ADC_ANA_CON00(ch)		(RK3308_ADC_ANA_OFFSET(ch) + ACODEC_ADC_ANA_MIC_CTL)
+ #define RK3308_ADC_ANA_CON01(ch)		(RK3308_ADC_ANA_OFFSET(ch) + ACODEC_ADC_ANA_MIC_GAIN)
+@@ -185,7 +214,8 @@
+ #define RK3308_ADC_ANA_CON06(ch)		(RK3308_ADC_ANA_OFFSET(ch) + ACODEC_ADC_ANA_CTL1)
+ #define RK3308_ADC_ANA_CON07(ch)		(RK3308_ADC_ANA_OFFSET(ch) + ACODEC_ADC_ANA_CTL2)
+ #define RK3308_ADC_ANA_CON08(ch)		(RK3308_ADC_ANA_OFFSET(ch) + ACODEC_ADC_ANA_CTL3)
+-#define RK3308_ADC_ANA_CON10(ch)		(RK3308_ADC_ANA_OFFSET(ch) + ACODEC_ADC_ANA_CTL4)
++#define RK3308BS_ADC_ANA_CON09(ch)		(RK3308_ADC_ANA_OFFSET(ch) + ACODEC_S_ADC_ANA_CTL4)
++#define RK3308_ADC_ANA_CON10(ch)		(RK3308_ADC_ANA_OFFSET(ch) + ACODEC_ADC_ANA_CTL5)
+ #define RK3308_ADC_ANA_CON11(ch)		(RK3308_ADC_ANA_OFFSET(ch) + ACODEC_ADC_ANA_ALC_PGA)
+ 
+ /* DAC ANALOG REGISTERS */
+@@ -249,6 +279,11 @@
+ #define RK3308_ADC_I2S_TYPE_MSK			(1 << 0)
+ #define RK3308_ADC_I2S_MONO			(1 << 0)
+ #define RK3308_ADC_I2S_STEREO			(0 << 0)
++#define RK3308BS_ADC_I2S_SWAP_SFT		0
++#define RK3308BS_ADC_I2S_LR			(0 << RK3308BS_ADC_I2S_SWAP_SFT)
++#define RK3308BS_ADC_I2S_LL			(1 << RK3308BS_ADC_I2S_SWAP_SFT)
++#define RK3308BS_ADC_I2S_RR			(2 << RK3308BS_ADC_I2S_SWAP_SFT)
++#define RK3308BS_ADC_I2S_RL			(3 << RK3308BS_ADC_I2S_SWAP_SFT)
+ 
+ /* RK3308_ADC_DIG_CON02 - REG: 0x0008 */
+ #define RK3308_ADC_IO_MODE_MSK			(1 << 5)
+@@ -295,11 +330,19 @@
+ #define RK3308_ADC_HPF_CUTOFF_245HZ		(0x1 << RK3308_ADC_HPF_CUTOFF_SFT)
+ #define RK3308_ADC_HPF_CUTOFF_20HZ		(0x0 << RK3308_ADC_HPF_CUTOFF_SFT)
+ 
++/* RK3308BS_ADC_DIG_CON05 - REG: 0x0014 */
++#define RK3308_ADC_DIG_VOL_CON_L_MSK		0xff
++#define RK3308_ADC_DIG_VOL_CON_L(x)		((x) & RK3308_ADC_DIG_VOL_CON_L_MSK)
++/* RK3308BS_ADC_DIG_CON06 - REG: 0x0018 */
++#define RK3308_ADC_DIG_VOL_CON_R_MSK		0xff
++#define RK3308_ADC_DIG_VOL_CON_R(x)		((x) & RK3308_ADC_DIG_VOL_CON_R_MSK)
++#define RK3308_ADC_DIG_VOL_0DB			0xc3
++
+ /* RK3308_ADC_DIG_CON07 - REG: 0x001c */
+ #define RK3308_ADCL_DATA_SFT			4
+-#define RK3308_ADCL_DATA(x)			(x << RK3308_ADCL_DATA_SFT)
++#define RK3308_ADCL_DATA(x)			((x) << RK3308_ADCL_DATA_SFT)
+ #define RK3308_ADCR_DATA_SFT			2
+-#define RK3308_ADCR_DATA(x)			(x << RK3308_ADCR_DATA_SFT)
++#define RK3308_ADCR_DATA(x)			((x) << RK3308_ADCR_DATA_SFT)
+ #define RK3308_ADCL_DATA_SEL_ADCL		(0x1 << 1)
+ #define RK3308_ADCL_DATA_SEL_NORMAL		(0x0 << 1)
+ #define RK3308_ADCR_DATA_SEL_ADCR		(0x1 << 0)
+@@ -533,11 +576,33 @@
+ #define RK3308_AGC_MIN_GAIN_PGA_NDB_18		(0x0 << RK3308_AGC_MIN_GAIN_PGA_SFT)
+ 
+ /*
+- * RK3308_ALC_L_DIG_CON12 - REG: 0x0068 + ch * 0xc0
+- * RK3308_ALC_R_DIG_CON12 - REG: 0x00a8 + ch * 0xc0
++ * RK3308BS_ALC_L_DIG_CON11 - REG: 0x006c + ch * 0xc0
++ * RK3308BS_ALC_R_DIG_CON11 - REG: 0x00ac + ch * 0xc0
++ */
++#define ACODEC_S_ADC_PEAK_DET_VALUE_DEC_RATE(x)	((x) & 0x1f)
++
++/*
++ * RK3308_ALC_L_DIG_CON12 - REG: 0x0070 + ch * 0xc0
++ * RK3308_ALC_R_DIG_CON12 - REG: 0x00b0 + ch * 0xc0
+  */
+ #define RK3308_AGC_GAIN_MSK			0x1f
+ 
++/*
++ * RK3308BS_ALC_L_DIG_CON12 - REG: 0x0070 + ch * 0xc0
++ * RK3308BS_ALC_R_DIG_CON12 - REG: 0x00b0 + ch * 0xc0
++ */
++
++/*
++ * RK3308BS_ALC_L_DIG_CON13 - REG: 0x0074 + ch * 0xc0
++ * RK3308BS_ALC_R_DIG_CON13 - REG: 0x00b4 + ch * 0xc0
++ */
++
++/*
++ * RK3308BS_ALC_L_DIG_CON14 - REG: 0x0078 + ch * 0xc0
++ * RK3308BS_ALC_R_DIG_CON14 - REG: 0x00b8 + ch * 0xc0
++ */
++#define RK3308BS_AGC_GAIN_MSK			0x1f
++
+ /* RK3308_DAC_DIG_CON01 - REG: 0x0304 */
+ #define RK3308_DAC_I2S_LRC_POL_MSK		(0x1 << 7)
+ #define RK3308_DAC_I2S_LRC_POL_REVERSAL		(0x1 << 7)
+@@ -557,8 +622,17 @@
+ #define RK3308_DAC_I2S_LR_MSK			(0x1 << 2)
+ #define RK3308_DAC_I2S_LR_SWAP			(0x1 << 2)
+ #define RK3308_DAC_I2S_LR_NORMAL		(0x0 << 2)
++#define RK3308BS_DAC_I2S_BYPASS_MSK		(0x1 << 1)
++#define RK3308BS_DAC_I2S_BYPASS_EN		(0x1 << 1)
++#define RK3308BS_DAC_I2S_BYPASS_DIS		(0x0 << 1)
+ 
+ /* RK3308_DAC_DIG_CON02 - REG: 0x0308 */
++#define RK3308BS_DAC_IO_MODE_MSK		(0x1 << 7)
++#define RK3308BS_DAC_IO_MODE_MASTER		(0x1 << 7)
++#define RK3308BS_DAC_IO_MODE_SLAVE		(0x0 << 7)
++#define RK3308BS_DAC_MODE_MSK			(0x1 << 6)
++#define RK3308BS_DAC_MODE_MASTER		(0x1 << 6)
++#define RK3308BS_DAC_MODE_SLAVE			(0x0 << 6)
+ #define RK3308_DAC_IO_MODE_MSK			(0x1 << 5)
+ #define RK3308_DAC_IO_MODE_MASTER		(0x1 << 5)
+ #define RK3308_DAC_IO_MODE_SLAVE		(0x0 << 5)
+@@ -604,17 +678,40 @@
+ #define RK3308_DAC_CIC_IF_GAIN_SFT		0
+ #define RK3308_DAC_CIC_IF_GAIN_MSK		(0x7 << RK3308_DAC_CIC_IF_GAIN_SFT)
+ 
++/* RK3308BS_DAC_DIG_CON04 - REG: 0x0310 */
++#define RK3308BS_DAC_DIG_GAIN_SFT		0
++#define RK3308BS_DAC_DIG_GAIN_MSK		(0xff << RK3308BS_DAC_DIG_GAIN_SFT)
++#define RK3308BS_DAC_DIG_GAIN(x)		((x) & RK3308BS_DAC_DIG_GAIN_MSK)
++
+ /* RK3308_DAC_DIG_CON05 - REG: 0x0314 */
+-#define RK3308_DAC_L_REG_CTL_INDATA		(0x1 << 2)
+-#define RK3308_DAC_L_NORMAL_DATA		(0x0 << 2)
+-#define RK3308_DAC_R_REG_CTL_INDATA		(0x1 << 1)
+-#define RK3308_DAC_R_NORMAL_DATA		(0x0 << 1)
++#define RK3308_DAC_L_DATA_SEL_INPUT		(0x1 << 2)
++#define RK3308_DAC_L_DATA_SEL_NORMAL		(0x0 << 2)
++#define RK3308_DAC_R_DATA_SEL_INPUT		(0x1 << 1)
++#define RK3308_DAC_R_DATA_SEL_NORMAL		(0x0 << 1)
++
++/* RK3308BS_DAC_DIG_CON05 - REG: 0x0314 */
++#define RK3308BS_DAC_L_DATA_SEL_MUTE		(0x1 << 2)
++#define RK3308BS_DAC_L_DATA_SEL_NORMAL		(0x0 << 2)
++#define RK3308BS_DAC_R_DATA_SEL_MUTE		(0x1 << 1)
++#define RK3308BS_DAC_R_DATA_SEL_NORMAL		(0x0 << 1)
+ 
+ /* RK3308_DAC_DIG_CON10 - REG: 0x0328 */
+-#define RK3308_DAC_DATA_HI4(x)			(x & 0xf) /* Need to RK3308_DAC_x_REG_CTL_INDATA */
++#define RK3308_DAC_DATA_HI4(x)			((x) & 0xf) /* Need to RK3308_DAC_x_REG_CTL_INDATA */
+ 
+ /* RK3308_DAC_DIG_CON11 - REG: 0x032c */
+-#define RK3308_DAC_DATA_LO8(x)			(x & 0xff) /* Need to RK3308_DAC_x_REG_CTL_INDATA */
++#define RK3308_DAC_DATA_LO8(x)			((x) & 0xff) /* Need to RK3308_DAC_x_REG_CTL_INDATA */
++
++/* RK3308BS_DAC_DIG_CON09 - REG: 0x0324 */
++#define RK3308BS_DAC_DATA_HI4(x)		((x) & 0xf) /* Need to RK3308_DAC_x_REG_CTL_INDATA */
++
++/* RK3308BS_DAC_DIG_CON10 - REG: 0x0328 */
++#define RK3308BS_DAC_DATA_LO8(x)		((x) & 0xff) /* Need to RK3308_DAC_x_REG_CTL_INDATA */
++
++/* RK3308BS_DAC_DIG_CON11 - REG: 0x032c */
++#define RK3308BS_DAC_DELAY_TIME_DETECT_HI2(x)	((x) & 0x3)
++
++/* RK3308BS_DAC_DIG_CON12 - REG: 0x0330 */
++#define RK3308BS_DAC_DELAY_TIME_DETECT_LO8(x)	((x) & 0xff)
+ 
+ /* RK3308_ADC_ANA_CON00 - REG: 0x0340 */
+ #define RK3308_ADC_CH1_CH2_MIC_ALL_MSK		(0xff << 0)
+@@ -816,6 +913,12 @@
+ #define RK3308_ADC_MICBIAS_CURRENT_MSK		(0x1 << 4)
+ #define RK3308_ADC_MICBIAS_CURRENT_EN		(0x1 << 4)
+ #define RK3308_ADC_MICBIAS_CURRENT_DIS		(0x0 << 4)
++#define RK3308BS_ADC_MICBIAS_CURRENT_SEL(x)	((x) & 0xf)
++
++/* RK3308BS_ADC_ANA_CON09 - REG: 0x0364 */
++#define RK3308BS_ADC_MICBIAS_OPA_VBIAS(x)	(((x) & 0x7) << 4)
++#define RK3308BS_ADC_VCM_SETUP_MIN_CURRENT_EN	(0x0 << 1)
++#define RK3308BS_ADC_VCM_SETUP_MIN_CURRENT_DIS	(0x0 << 0)
+ 
+ /* RK3308_ADC_ANA_CON10 - REG: 0x0368 */
+ #define RK3308_ADC_REF_EN			(0x1 << 7)
+@@ -826,7 +929,7 @@
+  * 1: Choose the current I
+  * 0: Don't choose the current I
+  */
+-#define RK3308_ADC_SEL_I(x)			(x & 0x7f)
++#define RK3308_ADC_SEL_I(x)			((x) & 0x7f)
+ 
+ /* RK3308_ADC_ANA_CON11 - REG: 0x036c */
+ #define RK3308_ADC_ALCR_CON_GAIN_PGAR_MSK	(0x1 << 1)
+@@ -837,6 +940,9 @@
+ #define RK3308_ADC_ALCL_CON_GAIN_PGAL_DIS	(0x0 << 0)
+ 
+ /* RK3308_DAC_ANA_CON00 - REG: 0x0440 */
++#define RK3308_DAC_CURRENT_SEL_SFT		4
++#define RK3308_DAC_CURRENT_SEL_MSK		(0xf << RK3308_DAC_CURRENT_SEL_SFT)
++#define RK3308_DAC_CURRENT_SEL(x)		((x) & RK3308_DAC_CURRENT_SEL_MSK)
+ #define RK3308_DAC_HEADPHONE_DET_MSK		(0x1 << 1)
+ #define RK3308_DAC_HEADPHONE_DET_EN		(0x1 << 1)
+ #define RK3308_DAC_HEADPHONE_DET_DIS		(0x0 << 1)
+@@ -852,6 +958,7 @@
+ #define RK3308_DAC_HPOUT_POP_SOUND_R_MSK	(0x3 << RK3308_DAC_HPOUT_POP_SOUND_R_SFT)
+ #define RK3308_DAC_HPOUT_POP_SOUND_R_WORK	(0x2 << RK3308_DAC_HPOUT_POP_SOUND_R_SFT)
+ #define RK3308_DAC_HPOUT_POP_SOUND_R_INIT	(0x1 << RK3308_DAC_HPOUT_POP_SOUND_R_SFT)
++#define RK3308BS_DAC_HPOUT_POP_SOUND_R_DIS	(0x0 << RK3308_DAC_HPOUT_POP_SOUND_R_SFT)
+ #define RK3308_DAC_BUF_REF_L_MSK		(0x1 << 2)
+ #define RK3308_DAC_BUF_REF_L_EN			(0x1 << 2)
+ #define RK3308_DAC_BUF_REF_L_DIS		(0x0 << 2)
+@@ -859,6 +966,7 @@
+ #define RK3308_DAC_HPOUT_POP_SOUND_L_MSK	(0x3 << RK3308_DAC_HPOUT_POP_SOUND_L_SFT)
+ #define RK3308_DAC_HPOUT_POP_SOUND_L_WORK	(0x2 << RK3308_DAC_HPOUT_POP_SOUND_L_SFT)
+ #define RK3308_DAC_HPOUT_POP_SOUND_L_INIT	(0x1 << RK3308_DAC_HPOUT_POP_SOUND_L_SFT)
++#define RK3308BS_DAC_HPOUT_POP_SOUND_L_DIS	(0x0 << RK3308_DAC_HPOUT_POP_SOUND_L_SFT)
+ 
+ /* RK3308_DAC_ANA_CON02 - REG: 0x0448 */
+ #define RK3308_DAC_R_DAC_WORK			(0x1 << 7)
+@@ -991,14 +1099,18 @@
+ /* RK3308_DAC_ANA_CON07 - REG: 0x045c */
+ #define RK3308_DAC_R_HPOUT_DRV_SFT		4
+ #define RK3308_DAC_R_HPOUT_DRV_MSK		(0xf << RK3308_DAC_R_HPOUT_DRV_SFT)
++#define RK3308_DAC_R_HPOUT_DRV(x)		(((x) << RK3308_DAC_R_HPOUT_DRV_SFT) & RK3308_DAC_R_HPOUT_DRV_MSK)
+ #define RK3308_DAC_L_HPOUT_DRV_SFT		0
+ #define RK3308_DAC_L_HPOUT_DRV_MSK		(0xf << RK3308_DAC_L_HPOUT_DRV_SFT)
++#define RK3308_DAC_L_HPOUT_DRV(x)		(((x) << RK3308_DAC_L_HPOUT_DRV_SFT) & RK3308_DAC_L_HPOUT_DRV_MSK)
+ 
+ /* RK3308_DAC_ANA_CON08 - REG: 0x0460 */
+ #define RK3308_DAC_R_LINEOUT_DRV_SFT		4
+ #define RK3308_DAC_R_LINEOUT_DRV_MSK		(0xf << RK3308_DAC_R_LINEOUT_DRV_SFT)
++#define RK3308_DAC_R_LINEOUT_DRV(x)		(((x) << RK3308_DAC_R_LINEOUT_DRV_SFT) & RK3308_DAC_R_LINEOUT_DRV_MSK)
+ #define RK3308_DAC_L_LINEOUT_DRV_SFT		0
+ #define RK3308_DAC_L_LINEOUT_DRV_MSK		(0xf << RK3308_DAC_L_LINEOUT_DRV_SFT)
++#define RK3308_DAC_L_LINEOUT_DRV(x)		(((x) << RK3308_DAC_L_LINEOUT_DRV_SFT) & RK3308_DAC_L_LINEOUT_DRV_MSK)
+ 
+ /* RK3308_DAC_ANA_CON12 - REG: 0x0470 */
+ #define RK3308_DAC_R_HPMIX_SEL_SFT		6
+@@ -1050,7 +1162,7 @@
+  * 1: Choose the current I
+  * 0: Don't choose the current I
+  */
+-#define RK3308_DAC_SEL_I(x)			(x & 0xf)
++#define RK3308_DAC_SEL_I(x)			((x) & 0xf)
+ 
+ /* RK3308_DAC_ANA_CON15 - REG: 0x047C */
+ #define RK3308_DAC_LINEOUT_POP_SOUND_R_SFT	4
+-- 
+2.7.4
+

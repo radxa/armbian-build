@@ -1,0 +1,136 @@
+From c2ba04b4472aa1237e09f1cff70c6baff01fd7be Mon Sep 17 00:00:00 2001
+From: Finley Xiao <finley.xiao@rock-chips.com>
+Date: Thu, 8 Jul 2021 15:28:26 +0800
+Subject: [PATCH 03/30] thermal: rockchip: Support the rk3308bs SoC in thermal
+ driver
+
+There is one Temperature Sensor for CPU on rk3308bs.
+
+Change-Id: I297f58d476c6dd037dd203ea06b571d061e48686
+Signed-off-by: Finley Xiao <finley.xiao@rock-chips.com>
+---
+ drivers/thermal/rockchip_thermal.c | 59 ++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 56 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/thermal/rockchip_thermal.c b/drivers/thermal/rockchip_thermal.c
+index 4b9be6f..ac2e880 100644
+--- a/drivers/thermal/rockchip_thermal.c
++++ b/drivers/thermal/rockchip_thermal.c
+@@ -23,6 +23,7 @@
+ #include <linux/platform_device.h>
+ #include <linux/regmap.h>
+ #include <linux/reset.h>
++#include <linux/rockchip/cpu.h>
+ #include <linux/thermal.h>
+ #include <linux/mfd/syscon.h>
+ #include <linux/pinctrl/consumer.h>
+@@ -83,6 +84,9 @@ struct chip_tsadc_table {
+ 	const struct tsadc_table *id;
+ 	unsigned int length;
+ 	u32 data_mask;
++	/* Tsadc is linear, using linear parameters */
++	int kNum;
++	int bNum;
+ 	enum adc_sort_mode mode;
+ };
+ 
+@@ -495,6 +499,9 @@ static u32 rk_tsadcv2_temp_to_code(struct chip_tsadc_table table,
+ 	int high, low, mid;
+ 	u32 error = table.data_mask;
+ 
++	if (table.kNum)
++		return (((temp / 1000) * table.kNum) / 1000 + table.bNum);
++
+ 	low = 0;
+ 	high = table.length - 1;
+ 	mid = (high + low) / 2;
+@@ -529,6 +536,13 @@ static int rk_tsadcv2_code_to_temp(struct chip_tsadc_table table, u32 code,
+ 	unsigned int num;
+ 	unsigned long denom;
+ 
++	if (table.kNum) {
++		*temp = (((int)code - table.bNum) * 10000 / table.kNum) * 100;
++		if (*temp < MIN_TEMP || *temp > MAX_TEMP)
++			return -EAGAIN;
++		return 0;
++	}
++
+ 	WARN_ON(table.length < 2);
+ 
+ 	switch (table.mode) {
+@@ -981,6 +995,29 @@ static const struct rockchip_tsadc_chip rk3308_tsadc_data = {
+ 	},
+ };
+ 
++static const struct rockchip_tsadc_chip rk3308bs_tsadc_data = {
++	.chn_id[SENSOR_CPU] = 0, /* cpu sensor is channel 0 */
++	.chn_num = 1, /* 1 channels for tsadc */
++
++	.tshut_mode = TSHUT_MODE_CRU, /* default TSHUT via CRU */
++	.tshut_temp = 95000,
++
++	.initialize = rk_tsadcv2_initialize,
++	.irq_ack = rk_tsadcv3_irq_ack,
++	.control = rk_tsadcv2_control,
++	.get_temp = rk_tsadcv2_get_temp,
++	.set_alarm_temp = rk_tsadcv2_alarm_temp,
++	.set_tshut_temp = rk_tsadcv2_tshut_temp,
++	.set_tshut_mode = rk_tsadcv2_tshut_mode,
++
++	.table = {
++		.kNum = 2699,
++		.bNum = 2796,
++		.data_mask = TSADCV2_DATA_MASK,
++		.mode = ADC_INCREMENT,
++	},
++};
++
+ static const struct rockchip_tsadc_chip px30_tsadc_data = {
+ 	.chn_id[SENSOR_CPU] = 0, /* cpu sensor is channel 0 */
+ 	.chn_id[SENSOR_GPU] = 1, /* gpu sensor is channel 1 */
+@@ -1125,6 +1162,10 @@ static const struct of_device_id of_rockchip_thermal_match[] = {
+ 		.data = (void *)&rk3308_tsadc_data,
+ 	},
+ 	{
++		.compatible = "rockchip,rk3308bs-tsadc",
++		.data = (void *)&rk3308bs_tsadc_data,
++	},
++	{
+ 		.compatible = "rockchip,rk3328-tsadc",
+ 		.data = (void *)&rk3328_tsadc_data,
+ 	},
+@@ -1372,9 +1413,13 @@ static int rockchip_thermal_probe(struct platform_device *pdev)
+ 
+ 	thermal->pdev = pdev;
+ 
+-	thermal->chip = (const struct rockchip_tsadc_chip *)match->data;
+-	if (!thermal->chip)
+-		return -EINVAL;
++	if (soc_is_rk3308bs()) {
++		thermal->chip = &rk3308bs_tsadc_data;
++	} else {
++		thermal->chip = (const struct rockchip_tsadc_chip *)match->data;
++		if (!thermal->chip)
++			return -EINVAL;
++	}
+ 
+ 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+ 	thermal->regs = devm_ioremap_resource(&pdev->dev, res);
+@@ -1394,6 +1439,14 @@ static int rockchip_thermal_probe(struct platform_device *pdev)
+ 		dev_err(&pdev->dev, "failed to get tsadc clock: %d\n", error);
+ 		return error;
+ 	}
++	if (soc_is_rk3308bs()) {
++		error = clk_set_rate(thermal->clk, 4000000);
++		if (error < 0) {
++			dev_err(&pdev->dev,
++				"failed to set tsadc clk rate to 4000000Hz\n");
++			return error;
++		}
++	}
+ 
+ 	thermal->pclk = devm_clk_get(&pdev->dev, "apb_pclk");
+ 	if (IS_ERR(thermal->pclk)) {
+-- 
+2.7.4
+

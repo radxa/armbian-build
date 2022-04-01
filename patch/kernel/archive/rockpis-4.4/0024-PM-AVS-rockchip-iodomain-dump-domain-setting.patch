@@ -1,0 +1,42 @@
+From 8db4d6d1d10431db05985edebc7236cf0fea02b8 Mon Sep 17 00:00:00 2001
+From: Lin Jianhua <linjh@rock-chips.com>
+Date: Wed, 20 Oct 2021 15:10:30 +0800
+Subject: [PATCH 24/30] PM / AVS: rockchip-iodomain: dump domain setting
+
+[    0.511664] rockchip-iodomain ff000000.grf:io-domains: vccio0
+supplied by 3300000 uV
+[    0.511860] rockchip-iodomain ff000000.grf:io-domains: vccio1
+supplied by 3300000 uV
+[    0.511978] rockchip-iodomain ff000000.grf:io-domains: vccio2
+supplied by 3300000 uV
+[    0.512139] rockchip-iodomain ff000000.grf:io-domains: vccio3
+supplied by 3300000 uV
+[    0.512304] rockchip-iodomain ff000000.grf:io-domains: vccio4
+supplied by 3300000 uV
+[    0.512425] rockchip-iodomain ff000000.grf:io-domains: vccio5
+supplied by 3300000 uV
+
+Signed-off-by: Lin Jianhua <linjh@rock-chips.com>
+Change-Id: I992cb63a0121c410a13141cb6145d86fb4974114
+Reviewed-on: https://10.10.10.29/c/rk/kernel-stable/+/137150
+Reviewed-by: Hans Yang <yhx@rock-chips.com>
+Tested-by: Hans Yang <yhx@rock-chips.com>
+---
+ drivers/power/avs/rockchip-io-domain.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/power/avs/rockchip-io-domain.c b/drivers/power/avs/rockchip-io-domain.c
+index fc2f7011..324a93f 100644
+--- a/drivers/power/avs/rockchip-io-domain.c
++++ b/drivers/power/avs/rockchip-io-domain.c
+@@ -660,6 +660,7 @@ static int rockchip_iodomain_probe(struct platform_device *pdev)
+ 			goto unreg_notify;
+ 		}
+ 
++		dev_info(supply->iod->dev, "%s supplied by %d uV\n", supply_name, uV);
+ 		/* register regulator notifier */
+ 		ret = regulator_register_notifier(reg, &supply->nb);
+ 		if (ret) {
+-- 
+2.7.4
+

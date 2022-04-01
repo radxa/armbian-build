@@ -1,0 +1,33 @@
+From 38a5d1573ac3323104eb5a0956f73d0c97b9485d Mon Sep 17 00:00:00 2001
+From: Jon Lin <jon.lin@rock-chips.com>
+Date: Tue, 2 Nov 2021 16:36:20 +0800
+Subject: [PATCH 17/19] rockchip: rk3308bs: correct the nand iomux
+
+The rk3308b and rk3308bs nand flash id has two group iomuxs.
+
+The maskrom only config the iomux register in the low address,
+but the kernel routing to the another one, so configure it in
+spl early to avoid losing the flash iomux.
+
+Change-Id: I95381a8bad9a2f91decb89cd509a9b1977e90186
+Signed-off-by: Jon Lin <jon.lin@rock-chips.com>
+---
+ arch/arm/mach-rockchip/rk3308/rk3308.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/arch/arm/mach-rockchip/rk3308/rk3308.c b/arch/arm/mach-rockchip/rk3308/rk3308.c
+index c50b060..56417ec 100644
+--- a/arch/arm/mach-rockchip/rk3308/rk3308.c
++++ b/arch/arm/mach-rockchip/rk3308/rk3308.c
+@@ -169,7 +169,7 @@ int rk_board_init_f(void)
+ 		(GPIO3B3_SEL_SRC_CTRL_SEL_PLUS << GPIO3B3_SEL_SRC_CTRL_SHIFT);
+ 
+ 	if (get_bootdev_by_brom_bootsource() == BOOT_TYPE_NAND) {
+-		if (soc_is_rk3308b())
++		if (soc_is_rk3308b() || soc_is_rk3308bs())
+ 			rk_clrsetreg(&grf->soc_con15, mask, value);
+ 	}
+ 
+-- 
+2.7.4
+

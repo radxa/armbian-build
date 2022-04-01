@@ -1,0 +1,33 @@
+From ec4060eeffec79c1206af8cdbe19b19014689164 Mon Sep 17 00:00:00 2001
+From: Xing Zheng <zhengxing@rock-chips.com>
+Date: Tue, 14 Sep 2021 17:26:23 +0800
+Subject: [PATCH 17/30] ASoC: rk3308_codec: fix the ADC_DIG_VOL for RK3308BS
+
+By testing, we get better ADC feature, with 0xc2 as
+the ADC_DIG_VOL 0dB. The vendor will fix their SPEC.
+
+Signed-off-by: Xing Zheng <zhengxing@rock-chips.com>
+Change-Id: I2ab3e0b24d94635a6a62e75483345eaa59b26700
+Reviewed-on: https://10.10.10.29/c/rk/kernel-stable/+/136391
+Reviewed-by: Hans Yang <yhx@rock-chips.com>
+Tested-by: Hans Yang <yhx@rock-chips.com>
+---
+ sound/soc/codecs/rk3308_codec.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/sound/soc/codecs/rk3308_codec.h b/sound/soc/codecs/rk3308_codec.h
+index 9eaa670..0f55632 100644
+--- a/sound/soc/codecs/rk3308_codec.h
++++ b/sound/soc/codecs/rk3308_codec.h
+@@ -336,7 +336,7 @@
+ /* RK3308BS_ADC_DIG_CON06 - REG: 0x0018 */
+ #define RK3308_ADC_DIG_VOL_CON_R_MSK		0xff
+ #define RK3308_ADC_DIG_VOL_CON_R(x)		((x) & RK3308_ADC_DIG_VOL_CON_R_MSK)
+-#define RK3308_ADC_DIG_VOL_0DB			0xc3
++#define RK3308_ADC_DIG_VOL_0DB			0xc2
+ 
+ /* RK3308_ADC_DIG_CON07 - REG: 0x001c */
+ #define RK3308_ADCL_DATA_SFT			4
+-- 
+2.7.4
+

@@ -1,0 +1,105 @@
+From db9b7a0c8c947741513917e8790545d64030776c Mon Sep 17 00:00:00 2001
+From: Finley Xiao <finley.xiao@rock-chips.com>
+Date: Fri, 15 Oct 2021 18:14:31 +0800
+Subject: [PATCH 13/19] rockchip: rk3308: Revert some changes for cpu opp table
+
+There is no need to enable opp and add temperature configuration for
+cpu, we add these configuration in kernel dts for rk3308bs.
+
+Change-Id: I739fe7caf1ef3b5a0d0ac814ad063cc7da2d8e17
+Signed-off-by: Finley Xiao <finley.xiao@rock-chips.com>
+---
+ arch/arm/mach-rockchip/rk3308/rk3308.c | 67 +---------------------------------
+ 1 file changed, 1 insertion(+), 66 deletions(-)
+
+diff --git a/arch/arm/mach-rockchip/rk3308/rk3308.c b/arch/arm/mach-rockchip/rk3308/rk3308.c
+index cf3e0c6..c50b060 100644
+--- a/arch/arm/mach-rockchip/rk3308/rk3308.c
++++ b/arch/arm/mach-rockchip/rk3308/rk3308.c
+@@ -230,13 +230,10 @@ static int fdt_fixup_cpu_idle(const void *blob)
+ 
+ static int fdt_fixup_cpu_opp_table(const void *blob)
+ {
+-	int opp_node, old_opp_node;
+-	int cpu_node, sub_node;
++	int opp_node, cpu_node, sub_node;
+ 	int len;
+ 	u32 phandle;
+ 	u32 *pp;
+-	u32 val;
+-	bool is_opp_enabled;
+ 
+ 	/* Replace opp table */
+ 	opp_node = fdt_path_offset(blob, "/rk3308bs-cpu0-opp-table");
+@@ -265,68 +262,6 @@ static int fdt_fixup_cpu_opp_table(const void *blob)
+ 		pp[0] = cpu_to_fdt32(phandle);
+ 	}
+ 
+-	old_opp_node = fdt_path_offset(blob, "/cpu0-opp-table");
+-	if (old_opp_node < 0) {
+-		printf("Failed to get cpu0-opp-table node\n");
+-		return -EINVAL;
+-	}
+-
+-	/* Enable 1296MHz and 1200MHz */
+-	is_opp_enabled = false;
+-	sub_node = fdt_subnode_offset(blob, old_opp_node, "opp-1296000000");
+-	if (sub_node >= 0) {
+-		if (fdt_stringlist_search(blob, sub_node,
+-					  "status", "okay") >= 0)
+-			is_opp_enabled = true;
+-	}
+-
+-	sub_node = fdt_subnode_offset(blob, opp_node, "opp-1296000000");
+-	if (sub_node >= 0 && is_opp_enabled) {
+-		if (fdt_setprop_string((void *)blob, sub_node,
+-				       "status", "okay") < 0)
+-			printf("Failed to set 1296 okay\n");
+-	}
+-
+-	is_opp_enabled = false;
+-	sub_node = fdt_subnode_offset(blob, old_opp_node, "opp-1200000000");
+-	if (sub_node >= 0) {
+-		if (fdt_stringlist_search(blob, sub_node,
+-					  "status", "okay") >= 0)
+-			is_opp_enabled = true;
+-	}
+-
+-	sub_node = fdt_subnode_offset(blob, opp_node, "opp-1200000000");
+-	if (sub_node >= 0 && is_opp_enabled) {
+-		if (fdt_setprop_string((void *)blob, sub_node,
+-				       "status", "okay") < 0)
+-			printf("Failed to set 1200 okay\n");
+-	}
+-
+-	/* Add high temp configure */
+-	pp = (u32 *)fdt_getprop(blob, old_opp_node, "rockchip,high-temp", &len);
+-	if (pp) {
+-		val = fdt32_to_cpu(*pp);
+-		pp = (u32 *)fdt_getprop(blob, opp_node,
+-					"rockchip,high-temp", &len);
+-		if (!pp) {
+-			if (fdt_setprop_u32((void *)blob, opp_node,
+-					    "rockchip,high-temp", val))
+-				printf("Failed to set high temp prop\n");
+-		}
+-	}
+-	pp = (u32 *)fdt_getprop(blob, old_opp_node,
+-				"rockchip,high-temp-max-volt", &len);
+-	if (pp) {
+-		val = fdt32_to_cpu(*pp);
+-		pp = (u32 *)fdt_getprop(blob, opp_node,
+-					"rockchip,high-temp-max-volt", &len);
+-		if (!pp) {
+-			if (fdt_setprop_u32((void *)blob, opp_node,
+-					    "rockchip,high-temp-max-volt", val))
+-				printf("Failed to set high temp max volt prop\n");
+-		}
+-	}
+-
+ 	return 0;
+ }
+ 
+-- 
+2.7.4
+

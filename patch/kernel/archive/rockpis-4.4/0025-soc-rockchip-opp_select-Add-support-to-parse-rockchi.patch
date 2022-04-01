@@ -1,0 +1,48 @@
+From b2733b96b8e9ac4355cb1122222558740e423d34 Mon Sep 17 00:00:00 2001
+From: Finley Xiao <finley.xiao@rock-chips.com>
+Date: Tue, 19 Oct 2021 10:17:44 +0800
+Subject: [PATCH 25/30] soc: rockchip: opp_select: Add support to parse
+ rockchip,high-temp-max-freq
+
+Signed-off-by: Finley Xiao <finley.xiao@rock-chips.com>
+Change-Id: I31fae20425293c776acabe410bbd8feebcecd5a4
+Reviewed-on: https://10.10.10.29/c/rk/kernel-stable/+/137029
+Reviewed-by: Hans Yang <yhx@rock-chips.com>
+Tested-by: Hans Yang <yhx@rock-chips.com>
+---
+ drivers/soc/rockchip/rockchip_opp_select.c | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/drivers/soc/rockchip/rockchip_opp_select.c b/drivers/soc/rockchip/rockchip_opp_select.c
+index d12be15..52c9466 100644
+--- a/drivers/soc/rockchip/rockchip_opp_select.c
++++ b/drivers/soc/rockchip/rockchip_opp_select.c
+@@ -1051,7 +1051,9 @@ rockchip_register_thermal_notifier(struct device *dev,
+ 	struct device_node *np;
+ 	struct thermal_zone_device *tz;
+ 	struct thermal_opp_info *info = NULL;
++	unsigned long high_temp_max_freq;
+ 	const char *tz_name;
++	u32 value;
+ 
+ 	np = of_parse_phandle(dev->of_node, "operating-points-v2", 0);
+ 	if (!np) {
+@@ -1089,6 +1091,15 @@ rockchip_register_thermal_notifier(struct device *dev,
+ 				 &info->high_temp_max_volt))
+ 		info->high_temp_max_volt = INT_MAX;
+ 	rockchip_init_temp_opp_table(info);
++	if (!of_property_read_u32(np, "rockchip,high-temp-max-freq", &value)) {
++		high_temp_max_freq = value * 1000;
++		if (info->high_limit)
++			info->high_limit = min(high_temp_max_freq,
++					       info->high_limit);
++		else
++			info->high_limit = high_temp_max_freq;
++	}
++
+ 	dev_info(dev, "l=%d h=%d hyst=%d l_limit=%lu h_limit=%lu\n",
+ 		 info->low_temp, info->high_temp, info->temp_hysteresis,
+ 		 info->low_limit, info->high_limit);
+-- 
+2.7.4
+

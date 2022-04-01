@@ -1,0 +1,27 @@
+From 2134be428cfe001af59a3d19c13fc5f9e720e3eb Mon Sep 17 00:00:00 2001
+From: Jon Lin <jon.lin@rock-chips.com>
+Date: Wed, 15 Dec 2021 09:59:44 +0800
+Subject: [PATCH] drivers: rkflash: Fix XM25QH64C
+
+Change-Id: I5dfb96b38261c750f7bee31b3bdb5f7e7a797868
+Signed-off-by: Jon Lin <jon.lin@rock-chips.com>
+---
+ drivers/rkflash/sfc_nor.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/rkflash/sfc_nor.c b/drivers/rkflash/sfc_nor.c
+index a934f27741..da60dd53f3 100644
+--- a/drivers/rkflash/sfc_nor.c
++++ b/drivers/rkflash/sfc_nor.c
+@@ -71,6 +71,8 @@ static struct flash_info spi_flash_tbl[] = {
+ 
+ 	/* XM25QH32C */
+ 	{ 0x204016, 128, 8, 0x03, 0x02, 0x6B, 0x32, 0x20, 0xD8, 0x0C, 13, 9, 0 },
++	/* XM25QH64C */
++	{ 0x204017, 128, 8, 0x03, 0x02, 0x6B, 0x32, 0x20, 0xD8, 0x0C, 14, 9, 0 },
+ 	/* XM25QH64B */
+ 	{ 0x206017, 128, 8, 0x03, 0x02, 0x6B, 0x32, 0x20, 0xD8, 0x0D, 14, 6, 0 },
+ 	/* XM25QH128B */
+-- 
+2.17.1
+

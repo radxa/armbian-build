@@ -1,0 +1,213 @@
+From 98610955a5255fa0dfa2944b104f4a0dc7defdd5 Mon Sep 17 00:00:00 2001
+From: Finley Xiao <finley.xiao@rock-chips.com>
+Date: Thu, 14 Oct 2021 15:28:52 +0800
+Subject: [PATCH 20/30] arm64: dts: rockchip: Modify cpu opp table for rk3308bs
+
+Change-Id: I4dddd81907dc3bb7dd55c0a8eda41b16990ca203
+Signed-off-by: Finley Xiao <finley.xiao@rock-chips.com>
+---
+ arch/arm/boot/dts/rk3308-voice-module-v10-aarch32.dtsi |  7 +++++++
+ arch/arm/boot/dts/rk3308-voice-module-v11-aarch32.dtsi |  9 +++++++++
+ arch/arm64/boot/dts/rockchip/rk3308-evb-v10.dtsi       |  7 +++++++
+ arch/arm64/boot/dts/rockchip/rk3308-evb-v11.dtsi       |  9 +++++++++
+ arch/arm64/boot/dts/rockchip/rk3308-evb-v13.dtsi       |  9 +++++++++
+ arch/arm64/boot/dts/rockchip/rk3308-robot.dts          |  9 +++++++++
+ arch/arm64/boot/dts/rockchip/rk3308.dtsi               | 13 +++++++------
+ arch/arm64/boot/dts/rockchip/rk3308b-evb-v10.dtsi      |  9 +++++++++
+ arch/arm64/boot/dts/rockchip/rk3308k.dtsi              |  5 +++++
+ 9 files changed, 71 insertions(+), 6 deletions(-)
+
+diff --git a/arch/arm/boot/dts/rk3308-voice-module-v10-aarch32.dtsi b/arch/arm/boot/dts/rk3308-voice-module-v10-aarch32.dtsi
+index 068ba0c..6e807af 100644
+--- a/arch/arm/boot/dts/rk3308-voice-module-v10-aarch32.dtsi
++++ b/arch/arm/boot/dts/rk3308-voice-module-v10-aarch32.dtsi
+@@ -201,6 +201,13 @@
+ 	cpu-supply = <&vdd_core>;
+ };
+ 
++&cpu0_opp_table {
++	/* Since vdd_log and vdd_core use same regulator */
++	opp-1008000000 {
++		status = "disabled";
++	};
++};
++
+ &dmc {
+ 	center-supply = <&vdd_log>;
+ 	status = "okay";
+diff --git a/arch/arm/boot/dts/rk3308-voice-module-v11-aarch32.dtsi b/arch/arm/boot/dts/rk3308-voice-module-v11-aarch32.dtsi
+index 0f52964..a519fcf 100644
+--- a/arch/arm/boot/dts/rk3308-voice-module-v11-aarch32.dtsi
++++ b/arch/arm/boot/dts/rk3308-voice-module-v11-aarch32.dtsi
+@@ -212,6 +212,15 @@
+ 	};
+ };
+ 
++&rk3308bs_cpu0_opp_table {
++	opp-1008000000 {
++		status = "okay";
++	};
++	opp-1104000000 {
++		status = "okay";
++	};
++};
++
+ &dmc {
+ 	center-supply = <&vdd_log>;
+ 	status = "okay";
+diff --git a/arch/arm64/boot/dts/rockchip/rk3308-evb-v10.dtsi b/arch/arm64/boot/dts/rockchip/rk3308-evb-v10.dtsi
+index 97fa98c..aface98 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3308-evb-v10.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3308-evb-v10.dtsi
+@@ -275,6 +275,13 @@
+ 	cpu-supply = <&vdd_core>;
+ };
+ 
++&cpu0_opp_table {
++	/* Since vdd_log and vdd_core use same regulator */
++	opp-1008000000 {
++		status = "disabled";
++	};
++};
++
+ &dmc {
+ 	center-supply = <&vdd_core>;
+ 	status = "okay";
+diff --git a/arch/arm64/boot/dts/rockchip/rk3308-evb-v11.dtsi b/arch/arm64/boot/dts/rockchip/rk3308-evb-v11.dtsi
+index 2b244dd..7b543c05 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3308-evb-v11.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3308-evb-v11.dtsi
+@@ -294,6 +294,15 @@
+ 	};
+ };
+ 
++&rk3308bs_cpu0_opp_table {
++       opp-1008000000 {
++               status = "okay";
++       };
++       opp-1104000000 {
++               status = "okay";
++       };
++};
++
+ &dmc {
+ 	center-supply = <&vdd_log>;
+ 	status = "okay";
+diff --git a/arch/arm64/boot/dts/rockchip/rk3308-evb-v13.dtsi b/arch/arm64/boot/dts/rockchip/rk3308-evb-v13.dtsi
+index 92675be..26cbae2 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3308-evb-v13.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3308-evb-v13.dtsi
+@@ -294,6 +294,15 @@
+ 	};
+ };
+ 
++&rk3308bs_cpu0_opp_table {
++	opp-1008000000 {
++		status = "okay";
++	};
++	opp-1104000000 {
++		status = "okay";
++	};
++};
++
+ &dmc {
+ 	center-supply = <&vdd_log>;
+ 	status = "okay";
+diff --git a/arch/arm64/boot/dts/rockchip/rk3308-robot.dts b/arch/arm64/boot/dts/rockchip/rk3308-robot.dts
+index 12ef2c3..9659599 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3308-robot.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3308-robot.dts
+@@ -151,6 +151,15 @@
+ 	};
+ };
+ 
++&rk3308bs_cpu0_opp_table {
++	opp-1008000000 {
++		status = "okay";
++	};
++	opp-1104000000 {
++		status = "okay";
++	};
++};
++
+ &dmc {
+ 	center-supply = <&vdd_log>;
+ 	status = "okay";
+diff --git a/arch/arm64/boot/dts/rockchip/rk3308.dtsi b/arch/arm64/boot/dts/rockchip/rk3308.dtsi
+index 0095bf3..c2e219f 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3308.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3308.dtsi
+@@ -168,27 +168,28 @@
+ 
+ 		opp-408000000 {
+ 			opp-hz = /bits/ 64 <408000000>;
+-			opp-microvolt = <825000 825000 1200000>;
++			opp-microvolt = <850000 850000 1200000>;
+ 			clock-latency-ns = <40000>;
+ 			opp-suspend;
+ 		};
+ 		opp-600000000 {
+ 			opp-hz = /bits/ 64 <600000000>;
+-			opp-microvolt = <850000 850000 1200000>;
++			opp-microvolt = <900000 900000 1200000>;
+ 			clock-latency-ns = <40000>;
+ 		};
+ 		opp-816000000 {
+ 			opp-hz = /bits/ 64 <816000000>;
+-			opp-microvolt = <950000 950000 1200000>;
++			opp-microvolt = <1000000 1000000 1200000>;
+ 			clock-latency-ns = <40000>;
+ 		};
+ 		opp-1008000000 {
+ 			opp-hz = /bits/ 64 <1008000000>;
+-			opp-microvolt = <1075000 1075000 1200000>;
++			opp-microvolt = <1125000 1125000 1200000>;
+ 			clock-latency-ns = <40000>;
++			status = "disabled";
+ 		};
+-		opp-1200000000 {
+-			opp-hz = /bits/ 64 <1200000000>;
++		opp-1104000000 {
++			opp-hz = /bits/ 64 <1104000000>;
+ 			opp-microvolt = <1200000 1200000 1200000>;
+ 			clock-latency-ns = <40000>;
+ 			status = "disabled";
+diff --git a/arch/arm64/boot/dts/rockchip/rk3308b-evb-v10.dtsi b/arch/arm64/boot/dts/rockchip/rk3308b-evb-v10.dtsi
+index 622f700..e607649 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3308b-evb-v10.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3308b-evb-v10.dtsi
+@@ -271,6 +271,15 @@
+ 	};
+ };
+ 
++&rk3308bs_cpu0_opp_table {
++	opp-1008000000 {
++		status = "okay";
++	};
++	opp-1104000000 {
++		status = "okay";
++	};
++};
++
+ &dmc {
+ 	center-supply = <&vdd_log>;
+ 	status = "okay";
+diff --git a/arch/arm64/boot/dts/rockchip/rk3308k.dtsi b/arch/arm64/boot/dts/rockchip/rk3308k.dtsi
+index 5862443..5f9518d 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3308k.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3308k.dtsi
+@@ -18,6 +18,11 @@
+ 	rockchip,high-temp-max-volt = <1125000>;
+ };
+ 
++&rk3308bs_cpu0_opp_table {
++	rockchip,high-temp = <55000>;
++	rockchip,high-temp-max-volt = <1125000>;
++};
++
+ &rockchip_suspend {
+ 	rockchip,sleep-mode-config = <
+ 		(0
+-- 
+2.7.4
+

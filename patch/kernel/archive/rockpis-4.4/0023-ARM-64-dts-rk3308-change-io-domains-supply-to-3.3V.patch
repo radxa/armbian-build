@@ -1,0 +1,122 @@
+From 661d266bb92afacc7c55e3bc5f524740fb17c215 Mon Sep 17 00:00:00 2001
+From: Lin Jianhua <linjh@rock-chips.com>
+Date: Sat, 16 Oct 2021 09:45:54 +0800
+Subject: [PATCH 23/30] ARM[64]: dts: rk3308: change io domains supply to 3.3V
+
+Signed-off-by: Lin Jianhua <linjh@rock-chips.com>
+Change-Id: I5a3261c386829d6861940b496e69c14d7458b9e6
+---
+ arch/arm/boot/dts/rk3308-voice-module-v10-aarch32.dtsi | 4 ++--
+ arch/arm/boot/dts/rk3308-voice-module-v11-aarch32.dtsi | 4 ++--
+ arch/arm64/boot/dts/rockchip/rk3308-evb-v10.dtsi       | 6 +++---
+ arch/arm64/boot/dts/rockchip/rk3308-evb-v11.dtsi       | 6 +++---
+ arch/arm64/boot/dts/rockchip/rk3308-evb-v13.dtsi       | 6 +++---
+ arch/arm64/boot/dts/rockchip/rk3308b-evb-v10.dtsi      | 6 +++---
+ 6 files changed, 16 insertions(+), 16 deletions(-)
+
+diff --git a/arch/arm/boot/dts/rk3308-voice-module-v10-aarch32.dtsi b/arch/arm/boot/dts/rk3308-voice-module-v10-aarch32.dtsi
+index 6e807af..0f41ab4 100644
+--- a/arch/arm/boot/dts/rk3308-voice-module-v10-aarch32.dtsi
++++ b/arch/arm/boot/dts/rk3308-voice-module-v10-aarch32.dtsi
+@@ -222,9 +222,9 @@
+ 
+ 	vccio0-supply = <&vcc_io>;
+ 	vccio1-supply = <&vcc_io>;
+-	vccio2-supply = <&vcc_1v8>;
++	vccio2-supply = <&vcc_io>;
+ 	vccio3-supply = <&vcc_io>;
+-	vccio4-supply = <&vccio_sdio>;
++	vccio4-supply = <&vcc_io>;
+ 	vccio5-supply = <&vcc_io>;
+ };
+ 
+diff --git a/arch/arm/boot/dts/rk3308-voice-module-v11-aarch32.dtsi b/arch/arm/boot/dts/rk3308-voice-module-v11-aarch32.dtsi
+index a519fcf..0249ea1 100644
+--- a/arch/arm/boot/dts/rk3308-voice-module-v11-aarch32.dtsi
++++ b/arch/arm/boot/dts/rk3308-voice-module-v11-aarch32.dtsi
+@@ -243,9 +243,9 @@
+ 
+ 	vccio0-supply = <&vcc_io>;
+ 	vccio1-supply = <&vcc_io>;
+-	vccio2-supply = <&vcc_1v8>;
++	vccio2-supply = <&vcc_io>;
+ 	vccio3-supply = <&vcc_io>;
+-	vccio4-supply = <&vccio_sdio>;
++	vccio4-supply = <&vcc_io>;
+ 	vccio5-supply = <&vcc_io>;
+ };
+ 
+diff --git a/arch/arm64/boot/dts/rockchip/rk3308-evb-v10.dtsi b/arch/arm64/boot/dts/rockchip/rk3308-evb-v10.dtsi
+index aface98..0e03b60 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3308-evb-v10.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3308-evb-v10.dtsi
+@@ -320,9 +320,9 @@
+ 
+ 	vccio0-supply = <&vcc_io>;
+ 	vccio1-supply = <&vcc_io>;
+-	vccio2-supply = <&vcc_1v8>;
+-	vccio3-supply = <&vccio_flash>;
+-	vccio4-supply = <&vccio_sdio>;
++	vccio2-supply = <&vcc_io>;
++	vccio3-supply = <&vcc_io>;
++	vccio4-supply = <&vcc_io>;
+ 	vccio5-supply = <&vcc_io>;
+ };
+ 
+diff --git a/arch/arm64/boot/dts/rockchip/rk3308-evb-v11.dtsi b/arch/arm64/boot/dts/rockchip/rk3308-evb-v11.dtsi
+index 7b543c05..504ded6 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3308-evb-v11.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3308-evb-v11.dtsi
+@@ -341,10 +341,10 @@
+ 
+ 	vccio0-supply = <&vcc_io>;
+ 	vccio1-supply = <&vcc_io>;
+-	vccio2-supply = <&vcc_1v8>;
++	vccio2-supply = <&vcc_io>;
+ 	vccio3-supply = <&vcc_io>;
+-	vccio4-supply = <&vccio_sdio>;
+-	vccio5-supply = <&vccio_sd>;
++	vccio4-supply = <&vcc_io>;
++	vccio5-supply = <&vcc_io>;
+ };
+ 
+ &i2c1 {
+diff --git a/arch/arm64/boot/dts/rockchip/rk3308-evb-v13.dtsi b/arch/arm64/boot/dts/rockchip/rk3308-evb-v13.dtsi
+index 26cbae2..630f480 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3308-evb-v13.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3308-evb-v13.dtsi
+@@ -341,10 +341,10 @@
+ 
+ 	vccio0-supply = <&vcc_io>;
+ 	vccio1-supply = <&vcc_io>;
+-	vccio2-supply = <&vcc_1v8>;
++	vccio2-supply = <&vcc_io>;
+ 	vccio3-supply = <&vcc_io>;
+-	vccio4-supply = <&vccio_sdio>;
+-	vccio5-supply = <&vccio_sd>;
++	vccio4-supply = <&vcc_io>;
++	vccio5-supply = <&vcc_io>;
+ };
+ 
+ &i2c1 {
+diff --git a/arch/arm64/boot/dts/rockchip/rk3308b-evb-v10.dtsi b/arch/arm64/boot/dts/rockchip/rk3308b-evb-v10.dtsi
+index e607649..fc7a899 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3308b-evb-v10.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3308b-evb-v10.dtsi
+@@ -306,10 +306,10 @@
+ 
+ 	vccio0-supply = <&vcc_io>;
+ 	vccio1-supply = <&vcc_io>;
+-	vccio2-supply = <&vccio_sdio>;
+-	vccio3-supply = <&vccio_flash>;
++	vccio2-supply = <&vcc_io>;
++	vccio3-supply = <&vcc_io>;
+ 	vccio4-supply = <&vcc_io>;
+-	vccio5-supply = <&vccio_sdio>;
++	vccio5-supply = <&vcc_io>;
+ };
+ 
+ &i2c1 {
+-- 
+2.7.4
+

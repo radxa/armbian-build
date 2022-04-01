@@ -1,0 +1,35 @@
+From 2f46985aee1db18dc7235a511be0ec5f37a6dcd1 Mon Sep 17 00:00:00 2001
+From: Tao Huang <huangtao@rock-chips.com>
+Date: Fri, 10 Sep 2021 17:14:08 +0800
+Subject: [PATCH 10/30] clk: rockchip: rk3308: Call rockchip_soc_id_init() on
+ init
+
+clk init on time_init() which is before pure_initcall.
+So call rockchip_soc_id_init() before call soc_is_rk3308b().
+
+Change-Id: Iece3673bc7309ef9193df99f2a95e4b930613a3e
+Signed-off-by: Tao Huang <huangtao@rock-chips.com>
+(cherry picked from commit 189d8e4ce25771fdf5bfeab0c8d5eab9bf9dbb68)
+Reviewed-on: https://10.10.10.29/c/rk/kernel-stable/+/135014
+Reviewed-by: Jianqun Xu <jay.xu@rock-chips.com>
+Reviewed-by: Hans Yang <yhx@rock-chips.com>
+Tested-by: Hans Yang <yhx@rock-chips.com>
+---
+ drivers/clk/rockchip/clk-rk3308.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/clk/rockchip/clk-rk3308.c b/drivers/clk/rockchip/clk-rk3308.c
+index 02eafd3..3edc02f 100644
+--- a/drivers/clk/rockchip/clk-rk3308.c
++++ b/drivers/clk/rockchip/clk-rk3308.c
+@@ -990,6 +990,7 @@ static void __init rk3308_clk_init(struct device_node *np)
+ 				   RK3308_GRF_SOC_STATUS0);
+ 	rockchip_clk_register_branches(ctx, rk3308_clk_branches,
+ 				       ARRAY_SIZE(rk3308_clk_branches));
++	rockchip_soc_id_init();
+ 	if (soc_is_rk3308b())
+ 		rockchip_clk_register_branches(ctx, rk3308b_dclk_vop_frac,
+ 					       ARRAY_SIZE(rk3308b_dclk_vop_frac));
+-- 
+2.7.4
+

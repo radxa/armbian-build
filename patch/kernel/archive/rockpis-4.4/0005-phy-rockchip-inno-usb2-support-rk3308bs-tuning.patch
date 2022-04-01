@@ -1,0 +1,78 @@
+From 9f83b2e6ecb5296973e74dcc80e3f4b2cad18b0c Mon Sep 17 00:00:00 2001
+From: Frank Wang <frank.wang@rock-chips.com>
+Date: Tue, 7 Sep 2021 09:39:02 +0800
+Subject: [PATCH 05/30] phy: rockchip: inno-usb2: support rk3308bs tuning
+
+Tuing pre-emphasis and other properties for RK3308BS SoCs.
+
+Signed-off-by: Frank Wang <frank.wang@rock-chips.com>
+Change-Id: If7bb89c04a487c54bcca81d2cdaa9ee9bb26533f
+---
+ drivers/phy/rockchip/phy-rockchip-inno-usb2.c | 42 +++++++++++++++++++--------
+ 1 file changed, 30 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/phy/rockchip/phy-rockchip-inno-usb2.c b/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
+index 0a5ce62..35ab9ec 100644
+--- a/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
++++ b/drivers/phy/rockchip/phy-rockchip-inno-usb2.c
+@@ -33,6 +33,7 @@
+ #include <linux/platform_device.h>
+ #include <linux/power_supply.h>
+ #include <linux/regmap.h>
++#include <linux/rockchip/cpu.h>
+ #include <linux/mfd/syscon.h>
+ #include <linux/usb/of.h>
+ #include <linux/usb/otg.h>
+@@ -1896,20 +1897,37 @@ static int rk3308_usb2phy_tuning(struct rockchip_usb2phy *rphy)
+ {
+ 	int ret;
+ 
+-	/* Open pre-emphasize in non-chirp state for otg port */
+-	ret = regmap_write(rphy->grf, 0x0, 0x00070004);
+-	if (ret)
+-		return ret;
++	if (soc_is_rk3308bs()) {
++		/* Turn off differential reciver in suspend mode */
++		ret = regmap_write(rphy->grf, 0x30, 0 | BIT(2) << 16);
++		if (ret)
++			return ret;
+ 
+-	/* Open pre-emphasize in non-chirp state for host port */
+-	ret = regmap_write(rphy->grf, 0x30, 0x00070004);
+-	if (ret)
+-		return ret;
++		/* Enable otg port pre-emphasis during non-chirp phase */
++		ret = regmap_write(rphy->grf, 0, BIT(2) | GENMASK(2, 0) << 16);
++		if (ret)
++			return ret;
+ 
+-	/* Turn off differential receiver in suspend mode */
+-	ret = regmap_write(rphy->grf, 0x18, 0x00040000);
+-	if (ret)
+-		return ret;
++		/* Enable host port pre-emphasis during non-chirp phase */
++		ret = regmap_write(rphy->grf, 0x400, BIT(2) | GENMASK(2, 0) << 16);
++		if (ret)
++			return ret;
++	} else {
++		/* Open pre-emphasize in non-chirp state for otg port */
++		ret = regmap_write(rphy->grf, 0x0, 0x00070004);
++		if (ret)
++			return ret;
++
++		/* Open pre-emphasize in non-chirp state for host port */
++		ret = regmap_write(rphy->grf, 0x30, 0x00070004);
++		if (ret)
++			return ret;
++
++		/* Turn off differential receiver in suspend mode */
++		ret = regmap_write(rphy->grf, 0x18, 0x00040000);
++		if (ret)
++			return ret;
++	}
+ 
+ 	return 0;
+ }
+-- 
+2.7.4
+

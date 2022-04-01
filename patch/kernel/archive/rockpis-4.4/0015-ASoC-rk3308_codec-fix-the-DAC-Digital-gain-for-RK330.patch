@@ -1,0 +1,117 @@
+From 7ad977ee7251560f62c89b3204babeac90d1bc3c Mon Sep 17 00:00:00 2001
+From: Xing Zheng <zhengxing@rock-chips.com>
+Date: Mon, 13 Sep 2021 17:31:09 +0800
+Subject: [PATCH 15/30] ASoC: rk3308_codec: fix the DAC Digital gain for
+ RK3308BS
+
+The DAC_DIG_CON04 is conflict with RK3308BS and RK3308/RK3308B,
+let's fix it.
+
+Signed-off-by: Xing Zheng <zhengxing@rock-chips.com>
+Change-Id: If30e339dcd5e242a6c965d45105a896b418678a1
+Reviewed-on: https://10.10.10.29/c/rk/kernel-stable/+/136389
+Reviewed-by: Hans Yang <yhx@rock-chips.com>
+Tested-by: Hans Yang <yhx@rock-chips.com>
+---
+ sound/soc/codecs/rk3308_codec.c | 58 ++++++++++++++++++++++++-----------------
+ sound/soc/codecs/rk3308_codec.h |  1 +
+ 2 files changed, 35 insertions(+), 24 deletions(-)
+
+diff --git a/sound/soc/codecs/rk3308_codec.c b/sound/soc/codecs/rk3308_codec.c
+index 20f5477..a0470fa 100644
+--- a/sound/soc/codecs/rk3308_codec.c
++++ b/sound/soc/codecs/rk3308_codec.c
+@@ -1313,18 +1313,20 @@ static int rk3308_mute_stream(struct snd_soc_dai *dai, int mute, int stream)
+ 		int dgain;
+ 
+ 		if (mute) {
+-			for (dgain = 0x2; dgain <= 0x7; dgain++) {
+-				/*
+-				 * Keep the max -> min digital CIC interpolation
+-				 * filter gain step by step.
+-				 *
+-				 * loud: 0x2; whisper: 0x7
+-				 */
+-				regmap_update_bits(rk3308->regmap,
+-						   RK3308_DAC_DIG_CON04,
+-						   RK3308_DAC_CIC_IF_GAIN_MSK,
+-						   dgain);
+-				usleep_range(200, 300);  /* estimated value */
++			if (rk3308->codec_ver <= ACODEC_VERSION_B) {
++				for (dgain = 0x2; dgain <= 0x7; dgain++) {
++					/*
++					 * Keep the max -> min digital CIC interpolation
++					 * filter gain step by step.
++					 *
++					 * loud: 0x2; whisper: 0x7
++					 */
++					regmap_update_bits(rk3308->regmap,
++							   RK3308_DAC_DIG_CON04,
++							   RK3308_DAC_CIC_IF_GAIN_MSK,
++							   dgain);
++					usleep_range(200, 300);  /* estimated value */
++				}
+ 			}
+ 
+ #if !DEBUG_POP_ALWAYS
+@@ -1341,18 +1343,20 @@ static int rk3308_mute_stream(struct snd_soc_dai *dai, int mute, int stream)
+ 			if (rk3308->delay_start_play_ms)
+ 				msleep(rk3308->delay_start_play_ms);
+ #endif
+-			for (dgain = 0x7; dgain >= 0x2; dgain--) {
+-				/*
+-				 * Keep the min -> max digital CIC interpolation
+-				 * filter gain step by step
+-				 *
+-				 * loud: 0x2; whisper: 0x7
+-				 */
+-				regmap_update_bits(rk3308->regmap,
+-						   RK3308_DAC_DIG_CON04,
+-						   RK3308_DAC_CIC_IF_GAIN_MSK,
+-						   dgain);
+-				usleep_range(200, 300);  /* estimated value */
++			if (rk3308->codec_ver <= ACODEC_VERSION_B) {
++				for (dgain = 0x7; dgain >= 0x2; dgain--) {
++					/*
++					 * Keep the min -> max digital CIC interpolation
++					 * filter gain step by step
++					 *
++					 * loud: 0x2; whisper: 0x7
++					 */
++					regmap_update_bits(rk3308->regmap,
++							   RK3308_DAC_DIG_CON04,
++							   RK3308_DAC_CIC_IF_GAIN_MSK,
++							   dgain);
++					usleep_range(200, 300);  /* estimated value */
++				}
+ 			}
+ 		}
+ 	}
+@@ -3467,6 +3471,12 @@ static int rk3308_codec_default_gains(struct rk3308_codec_priv *rk3308)
+ 			   RK3308_DAC_L_LINEOUT_GAIN_0DB |
+ 			   RK3308_DAC_R_LINEOUT_GAIN_0DB);
+ 
++	if (rk3308->codec_ver == ACODEC_VERSION_C) {
++		/* recover DAC digtial gain to 0dB */
++		regmap_write(rk3308->regmap, RK3308BS_DAC_DIG_CON04,
++			     RK3308BS_DAC_DIG_GAIN(RK3308BS_DAC_DIG_0DB));
++	}
++
+ 	return 0;
+ }
+ 
+diff --git a/sound/soc/codecs/rk3308_codec.h b/sound/soc/codecs/rk3308_codec.h
+index b6c80378..9eaa670 100644
+--- a/sound/soc/codecs/rk3308_codec.h
++++ b/sound/soc/codecs/rk3308_codec.h
+@@ -682,6 +682,7 @@
+ #define RK3308BS_DAC_DIG_GAIN_SFT		0
+ #define RK3308BS_DAC_DIG_GAIN_MSK		(0xff << RK3308BS_DAC_DIG_GAIN_SFT)
+ #define RK3308BS_DAC_DIG_GAIN(x)		((x) & RK3308BS_DAC_DIG_GAIN_MSK)
++#define RK3308BS_DAC_DIG_0DB			0xed
+ 
+ /* RK3308_DAC_DIG_CON05 - REG: 0x0314 */
+ #define RK3308_DAC_L_DATA_SEL_INPUT		(0x1 << 2)
+-- 
+2.7.4
+

@@ -1,0 +1,39 @@
+From 0d397acf1c1a6ad033fff49cb8c3817e575cf18b Mon Sep 17 00:00:00 2001
+From: Joseph Chen <chenjh@rock-chips.com>
+Date: Sat, 23 Oct 2021 01:53:26 +0000
+Subject: [PATCH 27/32] arm: dts: rockchip: rk3308-dot-rk816: set vdd_10 volt
+ range 0.9v~1.8v
+
+RK3308BS requires fixed at 0.9v. It will be brought up to 1.0v by
+regulator framework without this change.
+
+This change compatibles RK3308B which requires fixed at 1.0v.
+
+Signed-off-by: Joseph Chen <chenjh@rock-chips.com>
+Change-Id: I3199621b60e6cbee0e98e2b727a6d2532cd60b7c
+Reviewed-on: https://10.10.10.29/c/rk/kernel-stable/+/137389
+Reviewed-by: Hans Yang <yhx@rock-chips.com>
+Tested-by: Hans Yang <yhx@rock-chips.com>
+---
+ arch/arm/boot/dts/rk3308-dot-rk816-v10-aarch32.dts | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/arch/arm/boot/dts/rk3308-dot-rk816-v10-aarch32.dts b/arch/arm/boot/dts/rk3308-dot-rk816-v10-aarch32.dts
+index bddc3e80ff4c..7166bdecc0d4 100644
+--- a/arch/arm/boot/dts/rk3308-dot-rk816-v10-aarch32.dts
++++ b/arch/arm/boot/dts/rk3308-dot-rk816-v10-aarch32.dts
+@@ -305,10 +305,8 @@
+ 
+ 			vdd_10: LDO_REG3 {
+ 				regulator-name = "vdd_10";
+-				regulator-min-microvolt = <1000000>;
++				regulator-min-microvolt = <900000>;
+ 				regulator-max-microvolt = <1800000>;
+-				regulator-always-on;
+-				regulator-boot-on;
+ 				regulator-state-mem {
+ 					regulator-off-in-suspend;
+ 				};
+-- 
+2.17.1
+

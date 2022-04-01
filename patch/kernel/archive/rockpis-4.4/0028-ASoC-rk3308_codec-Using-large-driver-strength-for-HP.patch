@@ -1,0 +1,32 @@
+From ea83d980027823e32da760b67001ee106030916c Mon Sep 17 00:00:00 2001
+From: Xing Zheng <zhengxing@rock-chips.com>
+Date: Fri, 22 Oct 2021 16:40:30 +0800
+Subject: [PATCH 28/30] ASoC: rk3308_codec: Using large driver strength for
+ HPOUT and LINEOUT for RK3308BS Codec
+
+Signed-off-by: Xing Zheng <zhengxing@rock-chips.com>
+Change-Id: I982b6a2b63d437ef7421347cf97a0c025f8cd1d3
+---
+ sound/soc/codecs/rk3308_codec.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/sound/soc/codecs/rk3308_codec.c b/sound/soc/codecs/rk3308_codec.c
+index ebf9fc3..5ff9604 100644
+--- a/sound/soc/codecs/rk3308_codec.c
++++ b/sound/soc/codecs/rk3308_codec.c
+@@ -2153,6 +2153,12 @@ static int rk3308_codec_power_on(struct rk3308_codec_priv *rk3308)
+ 				   RK3308_DAC_CURRENT_CHARGE_MSK, 0xf);
+ 	}
+ 
++	if (rk3308->codec_ver == ACODEC_VERSION_C) {
++		/* Using large driver strength for HPOUT and LINEOUT */
++		regmap_write(rk3308->regmap, RK3308_DAC_ANA_CON07, 0x11);
++		regmap_write(rk3308->regmap, RK3308_DAC_ANA_CON08, 0x11);
++	}
++
+ 	return 0;
+ }
+ 
+-- 
+2.7.4
+

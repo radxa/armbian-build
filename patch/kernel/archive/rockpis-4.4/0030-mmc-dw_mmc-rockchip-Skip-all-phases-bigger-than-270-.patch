@@ -1,0 +1,32 @@
+From 6601691b7a9bd7409619126872eb192da5a5ef1c Mon Sep 17 00:00:00 2001
+From: Shawn Lin <shawn.lin@rock-chips.com>
+Date: Wed, 27 Oct 2021 09:34:17 +0800
+Subject: [PATCH 30/30] mmc: dw_mmc-rockchip: Skip all phases bigger than 270
+ degrees
+
+Per design recommendation, it'd better not try to use any phase
+which is bigger than 270. Let's officially follow this.
+
+Change-Id: I8dee3eb648d321cc86e0926844cde528dbb5bd95
+Signed-off-by: Shawn Lin <shawn.lin@rock-chips.com>
+---
+ drivers/mmc/host/dw_mmc-rockchip.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/drivers/mmc/host/dw_mmc-rockchip.c b/drivers/mmc/host/dw_mmc-rockchip.c
+index 1b4b62c..65a73f9 100644
+--- a/drivers/mmc/host/dw_mmc-rockchip.c
++++ b/drivers/mmc/host/dw_mmc-rockchip.c
+@@ -112,6 +112,9 @@ static int dw_mci_rk3288_execute_tuning(struct dw_mci_slot *slot, u32 opcode)
+ 
+ 	/* Try each phase and extract good ranges */
+ 	for (i = 0; i < NUM_PHASES; ) {
++		/* Cannot guarantee any phases larger than 270 would work well */
++		if (TUNING_ITERATION_TO_PHASE(i) > 270)
++			break;
+ 		clk_set_phase(priv->sample_clk, TUNING_ITERATION_TO_PHASE(i));
+ 
+ 		v = !mmc_send_tuning(mmc, opcode, NULL);
+-- 
+2.7.4
+

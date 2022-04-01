@@ -1,0 +1,64 @@
+From a9289e2d7f05b8ed296e8cfad01732d4be56114f Mon Sep 17 00:00:00 2001
+From: Jianqun Xu <jay.xu@rock-chips.com>
+Date: Wed, 7 Jul 2021 11:30:32 +0800
+Subject: [PATCH 01/30] soc: rockchip: add cpuid for rk3308bs
+
+The GRF_CPU_ID support 0x3308c for RK3308BS.
+
+Signed-off-by: Jianqun Xu <jay.xu@rock-chips.com>
+Change-Id: I89c340006dd07179dc21147c038b16c5d8c0fed9
+---
+ drivers/soc/rockchip/rockchip-cpuinfo.c | 6 +++++-
+ include/linux/rockchip/cpu.h            | 5 ++++-
+ 2 files changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/soc/rockchip/rockchip-cpuinfo.c b/drivers/soc/rockchip/rockchip-cpuinfo.c
+index faea58a..ebbfafe 100644
+--- a/drivers/soc/rockchip/rockchip-cpuinfo.c
++++ b/drivers/soc/rockchip/rockchip-cpuinfo.c
+@@ -132,8 +132,12 @@ static void rk3308_init(void)
+ #define RK3308_GRF_CHIP_ID	0x800
+ 	base = ioremap(RK3308_GRF_PHYS, SZ_4K);
+ 	if (base) {
+-		if (readl_relaxed(base + RK3308_GRF_CHIP_ID) == 0x3308)
++		u32 v = readl_relaxed(base + RK3308_GRF_CHIP_ID);
++
++		if (v == 0x3308)
+ 			rockchip_soc_id = ROCKCHIP_SOC_RK3308B;
++		if (v == 0x3308c)
++			rockchip_soc_id = ROCKCHIP_SOC_RK3308BS;
+ 		iounmap(base);
+ 	}
+ }
+diff --git a/include/linux/rockchip/cpu.h b/include/linux/rockchip/cpu.h
+index 5542993..8db1293 100644
+--- a/include/linux/rockchip/cpu.h
++++ b/include/linux/rockchip/cpu.h
+@@ -88,7 +88,8 @@ static inline bool cpu_is_rk3308(void)
+ 	if (rockchip_soc_id)
+ 		return (rockchip_soc_id & ROCKCHIP_CPU_MASK) == ROCKCHIP_CPU_RK3308;
+ 
+-	return of_machine_is_compatible("rockchip,rk3308");
++	return of_machine_is_compatible("rockchip,rk3308") ||
++	       of_machine_is_compatible("rockchip,rk3308bs");
+ }
+ #else
+ static inline bool cpu_is_rk3308(void) { return false; }
+@@ -103,6 +104,7 @@ static inline bool cpu_is_rk3308(void) { return false; }
+ #define ROCKCHIP_SOC_RK3288W    (ROCKCHIP_CPU_RK3288 | 0x01)
+ #define ROCKCHIP_SOC_RK3308	(ROCKCHIP_CPU_RK3308 | 0x00)
+ #define ROCKCHIP_SOC_RK3308B	(ROCKCHIP_CPU_RK3308 | 0x01)
++#define ROCKCHIP_SOC_RK3308BS	(ROCKCHIP_CPU_RK3308 | 0x02)
+ 
+ #define ROCKCHIP_SOC(id, ID) \
+ static inline bool soc_is_##id(void) \
+@@ -120,5 +122,6 @@ ROCKCHIP_SOC(rk3288, RK3288)
+ ROCKCHIP_SOC(rk3288w, RK3288W)
+ ROCKCHIP_SOC(rk3308, RK3308)
+ ROCKCHIP_SOC(rk3308b, RK3308B)
++ROCKCHIP_SOC(rk3308bs, RK3308BS)
+ 
+ #endif
+-- 
+2.7.4
+

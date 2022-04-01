@@ -1,0 +1,83 @@
+From 29a908d1159d4a064498ac21f662180558f71e5b Mon Sep 17 00:00:00 2001
+From: Joseph Chen <chenjh@rock-chips.com>
+Date: Mon, 11 Oct 2021 09:16:01 +0000
+Subject: [PATCH 08/19] rockchip: rk3308: fixup pcfg drive-strength for
+ rk3308bs
+
+Traversing max depth2 of all nodes from root path "/".
+
+Time-Stat example: cpu on 816Mhz spends about 7ms on
+traversing total 272 nodes, including fixup some of them.
+
+Signed-off-by: Joseph Chen <chenjh@rock-chips.com>
+Change-Id: I919349f332e0081a92775d58456f68c4bd72f052
+(cherry picked from commit 6866616e99a99f86f18a87de128c0bfbf7d551b7)
+---
+ arch/arm/mach-rockchip/rk3308/rk3308.c | 44 ++++++++++++++++++++++++++++++++++
+ 1 file changed, 44 insertions(+)
+
+diff --git a/arch/arm/mach-rockchip/rk3308/rk3308.c b/arch/arm/mach-rockchip/rk3308/rk3308.c
+index f2bf29a..197ad9c 100644
+--- a/arch/arm/mach-rockchip/rk3308/rk3308.c
++++ b/arch/arm/mach-rockchip/rk3308/rk3308.c
+@@ -362,6 +362,49 @@ static int fdt_fixup_dmc_opp_table(const void *blob)
+ 	return 0;
+ }
+ 
++static void fixup_pcfg_drive_strength(const void *blob, int noffset)
++{
++	u32 *ds, *dss;
++	u32 val;
++
++	dss = (u32 *)fdt_getprop(blob, noffset, "drive-strength-s", NULL);
++	if (!dss)
++		return;
++
++	val = dss[0];
++	ds = (u32 *)fdt_getprop(blob, noffset, "drive-strength", NULL);
++	if (ds) {
++		ds[0] = val;
++	} else {
++		if (fdt_setprop((void *)blob, noffset,
++				"drive-strength", &val, 4) < 0)
++			printf("Failed to add drive-strength prop\n");
++	}
++}
++
++static int fdt_fixup_pcfg(const void *blob)
++{
++	int depth1_node;
++	int depth2_node;
++	int root_node;
++
++	root_node = fdt_path_offset(blob, "/");
++	if (root_node < 0)
++		return root_node;
++
++	fdt_for_each_subnode(depth1_node, blob, root_node) {
++		debug("depth1: %s\n", fdt_get_name(blob, depth2_node, NULL));
++		fixup_pcfg_drive_strength(blob, depth1_node);
++		fdt_for_each_subnode(depth2_node, blob, depth1_node) {
++			debug("    depth2: %s\n",
++			      fdt_get_name(blob, depth2_node, NULL));
++			fixup_pcfg_drive_strength(blob, depth2_node);
++		}
++	}
++
++	return 0;
++}
++
+ static int fdt_fixup_thermal_zones(const void *blob)
+ {
+ 	int thermal_node;
+@@ -394,6 +437,7 @@ int rk_board_fdt_fixup(const void *blob)
+ 		fdt_fixup_cpu_idle(blob);
+ 		fdt_fixup_cpu_opp_table(blob);
+ 		fdt_fixup_dmc_opp_table(blob);
++		fdt_fixup_pcfg(blob);
+ 		fdt_fixup_thermal_zones(blob);
+ 	}
+ 
+-- 
+2.7.4
+

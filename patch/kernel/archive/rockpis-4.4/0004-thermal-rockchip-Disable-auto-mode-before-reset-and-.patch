@@ -1,0 +1,40 @@
+From 862d9490aaf6bf45fb217dbaacc696b5a88f4ba4 Mon Sep 17 00:00:00 2001
+From: Finley Xiao <finley.xiao@rock-chips.com>
+Date: Thu, 23 Sep 2021 09:35:18 +0800
+Subject: [PATCH 04/30] thermal: rockchip: Disable auto mode before reset and
+ initialize
+
+There is a issuse when change auto mode to user mode, and now the
+SRST_TSADC only reset the tsadc clk, don't reset regsters, so when
+initialize tsadc the mode will be changed from auto to user, the tsadc
+will work abnormally. Change mode to user and then do SRST_TSADC is
+a workaround, and add SRST_TSADC_P and SRST_TSADC resets is a better way,
+we will add another patch.
+
+Change-Id: Iaed86545a5cb0c85250641b27f1aae0a1bcf9797
+Signed-off-by: Finley Xiao <finley.xiao@rock-chips.com>
+Reviewed-on: https://10.10.10.29/c/rk/kernel-stable/+/135492
+Reviewed-by: Jianhong Chen <chenjh@rock-chips.com>
+Reviewed-by: Lin JIan Hua <linjh@rock-chips.com>
+Reviewed-by: Hans Yang <yhx@rock-chips.com>
+Tested-by: Hans Yang <yhx@rock-chips.com>
+---
+ drivers/thermal/rockchip_thermal.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/thermal/rockchip_thermal.c b/drivers/thermal/rockchip_thermal.c
+index ac2e880..914047e 100644
+--- a/drivers/thermal/rockchip_thermal.c
++++ b/drivers/thermal/rockchip_thermal.c
+@@ -1456,6 +1456,8 @@ static int rockchip_thermal_probe(struct platform_device *pdev)
+ 		return error;
+ 	}
+ 
++	thermal->chip->control(thermal->regs, false);
++
+ 	error = clk_prepare_enable(thermal->clk);
+ 	if (error) {
+ 		dev_err(&pdev->dev, "failed to enable converter clock: %d\n",
+-- 
+2.7.4
+

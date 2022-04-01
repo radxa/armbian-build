@@ -1,0 +1,207 @@
+From 597c5ec7af154dc5e8c3180630bc36852d943c0a Mon Sep 17 00:00:00 2001
+From: Tao Huang <huangtao@rock-chips.com>
+Date: Fri, 10 Sep 2021 16:15:11 +0800
+Subject: [PATCH 11/30] ASoC: rk3308_codec: Fix missing device_unregister() in
+ error path
+
+rk3308_platform_probe() should call device_unregister() in error path.
+Otherwise, the memory of dev will free without unregister. Kernel will
+panic when reboot.
+
+kobject: '(null)' (ffffffc01e94a830): is not initialized,
+yet kobject_get() is being called.
+
+[<ffffff80081e8f6c>] kobject_get+0x30/0x80
+[<ffffff800829c110>] get_device+0x14/0x24
+[<ffffff800829e044>] device_shutdown+0x84/0x1a8
+[<ffffff80080b265c>] kernel_restart_prepare+0x34/0x3c
+[<ffffff80080b274c>] kernel_restart+0x14/0x5c
+[<ffffff80080b2a9c>] SyS_reboot+0x1a0/0x1bc
+[<ffffff8008082f30>] el0_svc_naked+0x24/0x28
+
+Change-Id: I8eb838deb3b540792f63124365bf821f7ee15649
+Signed-off-by: Tao Huang <huangtao@rock-chips.com>
+(cherry picked from commit 2d44daeaec55919ac632a7cf277947f876d895fb)
+Reviewed-on: https://10.10.10.29/c/rk/kernel-stable/+/135015
+Reviewed-by: Jianqun Xu <jay.xu@rock-chips.com>
+Reviewed-by: Hans Yang <yhx@rock-chips.com>
+Tested-by: Hans Yang <yhx@rock-chips.com>
+---
+ sound/soc/codecs/rk3308_codec.c | 53 +++++++++++++++++++++++++++--------------
+ 1 file changed, 35 insertions(+), 18 deletions(-)
+
+diff --git a/sound/soc/codecs/rk3308_codec.c b/sound/soc/codecs/rk3308_codec.c
+index d5a3fad..95e4af6 100644
+--- a/sound/soc/codecs/rk3308_codec.c
++++ b/sound/soc/codecs/rk3308_codec.c
+@@ -4570,6 +4570,16 @@ static int rk3308_codec_sysfs_init(struct platform_device *pdev,
+ 	return 0;
+ }
+ 
++static void rk3308_codec_sysfs_exit(struct rk3308_codec_priv *rk3308)
++{
++	struct device *dev = &rk3308->dev;
++	unsigned int i;
++
++	for (i = 0; i < ARRAY_SIZE(acodec_attrs); i++)
++		device_remove_file(dev, &acodec_attrs[i]);
++	device_unregister(dev);
++}
++
+ #if defined(CONFIG_DEBUG_FS)
+ static int rk3308_codec_debugfs_reg_show(struct seq_file *s, void *v)
+ {
+@@ -4706,7 +4716,7 @@ static int rk3308_platform_probe(struct platform_device *pdev)
+ 	if (IS_ERR(rk3308->reset)) {
+ 		ret = PTR_ERR(rk3308->reset);
+ 		if (ret != -ENOENT)
+-			return ret;
++			goto out_sysfs;
+ 
+ 		dev_dbg(&pdev->dev, "No reset control found\n");
+ 		rk3308->reset = NULL;
+@@ -4719,7 +4729,7 @@ static int rk3308_platform_probe(struct platform_device *pdev)
+ 	} else if (IS_ERR(rk3308->hp_ctl_gpio)) {
+ 		ret = PTR_ERR(rk3308->hp_ctl_gpio);
+ 		dev_err(&pdev->dev, "Unable to claim gpio hp-ctl\n");
+-		return ret;
++		goto out_sysfs;
+ 	}
+ 
+ 	rk3308->spk_ctl_gpio = devm_gpiod_get_optional(&pdev->dev, "spk-ctl",
+@@ -4730,7 +4740,7 @@ static int rk3308_platform_probe(struct platform_device *pdev)
+ 	} else if (IS_ERR(rk3308->spk_ctl_gpio)) {
+ 		ret = PTR_ERR(rk3308->spk_ctl_gpio);
+ 		dev_err(&pdev->dev, "Unable to claim gpio spk-ctl\n");
+-		return ret;
++		goto out_sysfs;
+ 	}
+ 
+ 	rk3308->pa_drv_gpio = devm_gpiod_get_optional(&pdev->dev, "pa-drv",
+@@ -4741,7 +4751,7 @@ static int rk3308_platform_probe(struct platform_device *pdev)
+ 	} else if (IS_ERR(rk3308->pa_drv_gpio)) {
+ 		ret = PTR_ERR(rk3308->pa_drv_gpio);
+ 		dev_err(&pdev->dev, "Unable to claim gpio pa-drv\n");
+-		return ret;
++		goto out_sysfs;
+ 	}
+ 
+ 	if (rk3308->pa_drv_gpio) {
+@@ -4763,37 +4773,40 @@ static int rk3308_platform_probe(struct platform_device *pdev)
+ 	rk3308->pclk = devm_clk_get(&pdev->dev, "acodec");
+ 	if (IS_ERR(rk3308->pclk)) {
+ 		dev_err(&pdev->dev, "Can't get acodec pclk\n");
+-		return PTR_ERR(rk3308->pclk);
++		ret = PTR_ERR(rk3308->pclk);
++		goto out_sysfs;
+ 	}
+ 
+ 	rk3308->mclk_rx = devm_clk_get(&pdev->dev, "mclk_rx");
+ 	if (IS_ERR(rk3308->mclk_rx)) {
+ 		dev_err(&pdev->dev, "Can't get acodec mclk_rx\n");
+-		return PTR_ERR(rk3308->mclk_rx);
++		ret = PTR_ERR(rk3308->mclk_rx);
++		goto out_sysfs;
+ 	}
+ 
+ 	rk3308->mclk_tx = devm_clk_get(&pdev->dev, "mclk_tx");
+ 	if (IS_ERR(rk3308->mclk_tx)) {
+ 		dev_err(&pdev->dev, "Can't get acodec mclk_tx\n");
+-		return PTR_ERR(rk3308->mclk_tx);
++		ret = PTR_ERR(rk3308->mclk_tx);
++		goto out_sysfs;
+ 	}
+ 
+ 	ret = clk_prepare_enable(rk3308->pclk);
+ 	if (ret < 0) {
+ 		dev_err(&pdev->dev, "Failed to enable acodec pclk: %d\n", ret);
+-		return ret;
++		goto out_sysfs;
+ 	}
+ 
+ 	ret = clk_prepare_enable(rk3308->mclk_rx);
+ 	if (ret < 0) {
+ 		dev_err(&pdev->dev, "Failed to enable i2s mclk_rx: %d\n", ret);
+-		return ret;
++		goto out_pclk;
+ 	}
+ 
+ 	ret = clk_prepare_enable(rk3308->mclk_tx);
+ 	if (ret < 0) {
+ 		dev_err(&pdev->dev, "Failed to enable i2s mclk_tx: %d\n", ret);
+-		return ret;
++		goto out_mclk_rx;
+ 	}
+ 
+ 	rk3308_codec_check_micbias(rk3308, np);
+@@ -4828,28 +4841,28 @@ static int rk3308_platform_probe(struct platform_device *pdev)
+ 	if (ret < 0 && ret != -EINVAL) {
+ 		dev_err(&pdev->dev, "Failed to read loopback property: %d\n",
+ 			ret);
+-		return ret;
++		goto failed;
+ 	}
+ 
+ 	ret = rk3308_codec_adc_grps_route(rk3308, np);
+ 	if (ret < 0) {
+ 		dev_err(&pdev->dev, "Failed to route ADC groups: %d\n",
+ 			ret);
+-		return ret;
++		goto failed;
+ 	}
+ 
+ 	ret = rk3308_codec_setup_en_always_adcs(rk3308, np);
+ 	if (ret < 0) {
+ 		dev_err(&pdev->dev, "Failed to setup enabled always ADCs: %d\n",
+ 			ret);
+-		return ret;
++		goto failed;
+ 	}
+ 
+ 	ret = rk3308_codec_get_version(rk3308);
+ 	if (ret < 0) {
+ 		dev_err(&pdev->dev, "Failed to get acodec version: %d\n",
+ 			ret);
+-		return ret;
++		goto failed;
+ 	}
+ 
+ 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+@@ -4898,7 +4911,8 @@ static int rk3308_platform_probe(struct platform_device *pdev)
+ 			if (IS_ERR(rk3308->detect_grf)) {
+ 				dev_err(&pdev->dev,
+ 					"Missing 'rockchip,detect-grf' property\n");
+-				return PTR_ERR(rk3308->detect_grf);
++				ret = PTR_ERR(rk3308->detect_grf);
++				goto failed;
+ 			}
+ 
+ 			/* Configure filter count and enable hpdet irq. */
+@@ -4933,10 +4947,13 @@ static int rk3308_platform_probe(struct platform_device *pdev)
+ 	return ret;
+ 
+ failed:
+-	clk_disable_unprepare(rk3308->mclk_rx);
+ 	clk_disable_unprepare(rk3308->mclk_tx);
++out_mclk_rx:
++	clk_disable_unprepare(rk3308->mclk_rx);
++out_pclk:
+ 	clk_disable_unprepare(rk3308->pclk);
+-	device_unregister(&rk3308->dev);
++out_sysfs:
++	rk3308_codec_sysfs_exit(rk3308);
+ 
+ 	return ret;
+ }
+@@ -4950,7 +4967,7 @@ static int rk3308_platform_remove(struct platform_device *pdev)
+ 	clk_disable_unprepare(rk3308->mclk_tx);
+ 	clk_disable_unprepare(rk3308->pclk);
+ 	snd_soc_unregister_codec(&pdev->dev);
+-	device_unregister(&rk3308->dev);
++	rk3308_codec_sysfs_exit(rk3308);
+ 
+ 	return 0;
+ }
+-- 
+2.7.4
+

@@ -1,0 +1,30 @@
+From c6a88e429fea22ebfdba6a795f7595ccb0980251 Mon Sep 17 00:00:00 2001
+From: Joseph Chen <chenjh@rock-chips.com>
+Date: Wed, 20 Oct 2021 10:19:53 +0000
+Subject: [PATCH 11/19] rockchip: rk3308: early fixup kernel fdt
+
+Signed-off-by: Joseph Chen <chenjh@rock-chips.com>
+Change-Id: I96115de0ee7545daf223e2c889c0de7b3ce02f4a
+---
+ arch/arm/mach-rockchip/rk3308/rk3308.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/arch/arm/mach-rockchip/rk3308/rk3308.c b/arch/arm/mach-rockchip/rk3308/rk3308.c
+index 197ad9c..a599bfe 100644
+--- a/arch/arm/mach-rockchip/rk3308/rk3308.c
++++ b/arch/arm/mach-rockchip/rk3308/rk3308.c
+@@ -443,3 +443,11 @@ int rk_board_fdt_fixup(const void *blob)
+ 
+ 	return 0;
+ }
++
++int rk_board_early_fdt_fixup(const void *blob)
++{
++	rk_board_fdt_fixup(blob);
++
++	return 0;
++}
++
+-- 
+2.7.4
+

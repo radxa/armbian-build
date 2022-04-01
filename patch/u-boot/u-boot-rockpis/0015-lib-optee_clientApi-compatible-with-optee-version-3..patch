@@ -1,0 +1,45 @@
+From 7a290bc8f2f6f4dabc6900217b798e5efe8e32cb Mon Sep 17 00:00:00 2001
+From: Hisping Lin <hisping.lin@rock-chips.com>
+Date: Fri, 24 Sep 2021 09:59:18 +0800
+Subject: [PATCH 15/19] lib: optee_clientApi: compatible with optee version
+ 3.13.0
+
+optee version 3.13.0 need exact return value,
+not fixed return success.
+
+Change-Id: Ibde4f885464703f5919281a5956b4d0015b97b91
+Signed-off-by: Hisping Lin <hisping.lin@rock-chips.com>
+---
+ lib/optee_clientApi/OpteeClientRPC.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/lib/optee_clientApi/OpteeClientRPC.c b/lib/optee_clientApi/OpteeClientRPC.c
+index 948c88f..8b34131 100644
+--- a/lib/optee_clientApi/OpteeClientRPC.c
++++ b/lib/optee_clientApi/OpteeClientRPC.c
+@@ -527,12 +527,13 @@ TEEC_Result OpteeRpcCmdFs(t_teesmc32_arg *TeeSmc32Arg)
+ #ifdef CONFIG_OPTEE_V1
+ 	TeecResult = tee_supp_rk_fs_process((void *)(size_t)TeeSmc32Param[0].u.memref.buf_ptr,
+ 							TeeSmc32Param[0].u.memref.size);
++	TeeSmc32Arg->ret = TEEC_SUCCESS;
+ #endif
+ #ifdef CONFIG_OPTEE_V2
+ 	TeecResult = tee_supp_rk_fs_process((size_t)TeeSmc32Arg->num_params,
+ 							(struct tee_ioctl_param *)TeeSmc32Param);
++	TeeSmc32Arg->ret = TeecResult;
+ #endif
+-
+ 	return TeecResult;
+ }
+ 
+@@ -669,7 +670,6 @@ TEEC_Result OpteeRpcCallback(ARM_SMC_ARGS *ArmSmcArgs)
+ 		}
+ 		case OPTEE_MSG_RPC_CMD_FS_V2: {
+ 			TeecResult = OpteeRpcCmdFs(TeeSmc32Arg);
+-			TeeSmc32Arg->ret = TEEC_SUCCESS;
+ 			break;
+ 		}
+ 		case OPTEE_MSG_RPC_CMD_LOAD_TA_V2: {
+-- 
+2.7.4
+

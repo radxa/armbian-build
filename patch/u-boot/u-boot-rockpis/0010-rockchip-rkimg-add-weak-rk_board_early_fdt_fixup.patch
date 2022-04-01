@@ -1,0 +1,41 @@
+From 6619e7bd470043215f6308a5518315de39923625 Mon Sep 17 00:00:00 2001
+From: Joseph Chen <chenjh@rock-chips.com>
+Date: Wed, 20 Oct 2021 10:23:49 +0000
+Subject: [PATCH 10/19] rockchip: rkimg: add weak rk_board_early_fdt_fixup()
+
+In order to fixup kernel fdt immediately after read.
+
+Signed-off-by: Joseph Chen <chenjh@rock-chips.com>
+Change-Id: Idba6a9b3fad512f602808e9c5f15a68f3ac28518
+---
+ arch/arm/mach-rockchip/resource_img.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/arch/arm/mach-rockchip/resource_img.c b/arch/arm/mach-rockchip/resource_img.c
+index 3acc074..881fa63 100755
+--- a/arch/arm/mach-rockchip/resource_img.c
++++ b/arch/arm/mach-rockchip/resource_img.c
+@@ -115,6 +115,12 @@ struct resource_file {
+ 	uint32_t	rsce_base;	/* Base addr of resource */
+ };
+ 
++__weak int rk_board_early_fdt_fixup(void *blob)
++{
++	return 0;
++}
++
++
+ static LIST_HEAD(entrys_head);
+ 
+ static int resource_image_check_header(const struct resource_img_hdr *hdr)
+@@ -964,5 +970,7 @@ int rockchip_read_dtb_file(void *fdt_addr)
+ 	android_fdt_overlay_apply((void *)fdt_addr);
+ #endif
+ 
++	rk_board_early_fdt_fixup(fdt_addr);
++
+ 	return file->f_size;
+ }
+-- 
+2.7.4
+

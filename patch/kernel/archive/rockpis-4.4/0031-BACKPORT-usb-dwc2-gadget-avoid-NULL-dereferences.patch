@@ -1,0 +1,127 @@
+From a20da8da076c6314ca99b2dad6b65564f45e1c77 Mon Sep 17 00:00:00 2001
+From: William Wu <william.wu@rock-chips.com>
+Date: Thu, 2 Dec 2021 15:37:42 +0800
+Subject: [PATCH 31/31] BACKPORT: usb: dwc2: gadget: avoid NULL dereferences
+
+For unidirectional endpoints, the endpoint pointer will
+be NULL for the unused direction. Check that the endpoint
+is active before dereferencing this pointer.
+
+Test on RK3308B/H-S platforms, set usb gadget as UAC1,
+without this patch, kernel crash with the following log:
+
+Unable to handle kernel NULL pointer dereference at virtual address 0000005a
+ pgd = c0054000
+ [0000005a] *pgd=00000000
+ Internal error: Oops: 5 [#1] PREEMPT SMP THUMB2
+ Modules linked in:
+ CPU: 0 PID: 0 Comm: swapper/0 Not tainted 4.4.143 #5
+ Hardware name: Generic DT based system
+ task: c03d87b0 task.stack: c03d4000
+ PC is at dwc2_hsotg_irq+0x51c/0x5dc
+ LR is at dwc2_hsotg_irq+0x52b/0x5dc
+
+Signed-off-by: William Wu <william.wu@rock-chips.com>
+Signed-off-by: John Keeping <john@metanate.com>
+Signed-off-by: Felipe Balbi <felipe.balbi@linux.intel.com>
+Change-Id: I61e19e1f9f5b2c4ff5168ae1636eae99499422c5
+(cherry picked from commit 89066b36c43dc9100ad2c86e0b6bf8c81ca0b4d4)
+---
+ drivers/usb/dwc2/gadget.c | 32 ++++++++++++++++++++++++++++----
+ 1 file changed, 28 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/usb/dwc2/gadget.c b/drivers/usb/dwc2/gadget.c
+index ad30a98531a8..87aae1b002b4 100644
+--- a/drivers/usb/dwc2/gadget.c
++++ b/drivers/usb/dwc2/gadget.c
+@@ -2701,14 +2701,21 @@ static void dwc2_gadget_handle_incomplete_isoc_in(struct dwc2_hsotg *hsotg)
+ {
+ 	struct dwc2_hsotg_ep *hs_ep;
+ 	u32 epctrl;
++	u32 daintmsk;
+ 	u32 idx;
+ 
+ 	dev_dbg(hsotg->dev, "Incomplete isoc in interrupt received:\n");
+ 
++	daintmsk = dwc2_readl(hsotg->regs + DAINTMSK);
++
+ 	for (idx = 1; idx <= hsotg->num_of_eps; idx++) {
+ 		hs_ep = hsotg->eps_in[idx];
++		/* Proceed only unmasked ISOC EPs */
++		if ((BIT(idx) & ~daintmsk) || !hs_ep->isochronous)
++			continue;
++
+ 		epctrl = dwc2_readl(hsotg->regs + DIEPCTL(idx));
+-		if ((epctrl & DXEPCTL_EPENA) && hs_ep->isochronous &&
++		if ((epctrl & DXEPCTL_EPENA) &&
+ 		    dwc2_gadget_target_frame_elapsed(hs_ep)) {
+ 			epctrl |= DXEPCTL_SNAK;
+ 			epctrl |= DXEPCTL_EPDIS;
+@@ -2737,16 +2744,24 @@ static void dwc2_gadget_handle_incomplete_isoc_out(struct dwc2_hsotg *hsotg)
+ {
+ 	u32 gintsts;
+ 	u32 gintmsk;
++	u32 daintmsk;
+ 	u32 epctrl;
+ 	struct dwc2_hsotg_ep *hs_ep;
+ 	int idx;
+ 
+ 	dev_dbg(hsotg->dev, "%s: GINTSTS_INCOMPL_SOOUT\n", __func__);
+ 
++	daintmsk = dwc2_readl(hsotg->regs + DAINTMSK);
++	daintmsk >>= DAINT_OUTEP_SHIFT;
++
+ 	for (idx = 1; idx <= hsotg->num_of_eps; idx++) {
+ 		hs_ep = hsotg->eps_out[idx];
++		/* Proceed only unmasked ISOC EPs */
++		if ((BIT(idx) & ~daintmsk) || !hs_ep->isochronous)
++			continue;
++
+ 		epctrl = dwc2_readl(hsotg->regs + DOEPCTL(idx));
+-		if ((epctrl & DXEPCTL_EPENA) && hs_ep->isochronous &&
++		if ((epctrl & DXEPCTL_EPENA) &&
+ 		    dwc2_gadget_target_frame_elapsed(hs_ep)) {
+ 			/* Unmask GOUTNAKEFF interrupt */
+ 			gintmsk = dwc2_readl(hsotg->regs + GINTMSK);
+@@ -2754,8 +2769,10 @@ static void dwc2_gadget_handle_incomplete_isoc_out(struct dwc2_hsotg *hsotg)
+ 			dwc2_writel(gintmsk, hsotg->regs + GINTMSK);
+ 
+ 			gintsts = dwc2_readl(hsotg->regs + GINTSTS);
+-			if (!(gintsts & GINTSTS_GOUTNAKEFF))
++			if (!(gintsts & GINTSTS_GOUTNAKEFF)) {
+ 				__orr32(hsotg->regs + DCTL, DCTL_SGOUTNAK);
++				break;
++			}
+ 		}
+ 	}
+ 
+@@ -2898,8 +2915,11 @@ irq_retry:
+ 		u8 idx;
+ 		u32 epctrl;
+ 		u32 gintmsk;
++		u32 daintmsk;
+ 		struct dwc2_hsotg_ep *hs_ep;
+ 
++		daintmsk = dwc2_readl(hsotg->regs + DAINTMSK);
++		daintmsk >>= DAINT_OUTEP_SHIFT;
+ 		/* Mask this interrupt */
+ 		gintmsk = dwc2_readl(hsotg->regs + GINTMSK);
+ 		gintmsk &= ~GINTSTS_GOUTNAKEFF;
+@@ -2908,9 +2928,13 @@ irq_retry:
+ 		dev_dbg(hsotg->dev, "GOUTNakEff triggered\n");
+ 		for (idx = 1; idx <= hsotg->num_of_eps; idx++) {
+ 			hs_ep = hsotg->eps_out[idx];
++			/* Proceed only unmasked ISOC EPs */
++			if ((BIT(idx) & ~daintmsk) || !hs_ep->isochronous)
++				continue;
++
+ 			epctrl = dwc2_readl(hsotg->regs + DOEPCTL(idx));
+ 
+-			if ((epctrl & DXEPCTL_EPENA) && hs_ep->isochronous) {
++			if (epctrl & DXEPCTL_EPENA) {
+ 				epctrl |= DXEPCTL_SNAK;
+ 				epctrl |= DXEPCTL_EPDIS;
+ 				dwc2_writel(epctrl, hsotg->regs + DOEPCTL(idx));
+-- 
+2.17.1
+
