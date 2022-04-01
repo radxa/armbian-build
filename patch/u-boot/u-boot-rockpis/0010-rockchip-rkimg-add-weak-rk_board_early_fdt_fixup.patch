@@ -34,7 +34,7 @@ index 3acc074..881fa63 100755
  
 +	rk_board_early_fdt_fixup(fdt_addr);
 +
- 	return file->f_size;
+ 	return size;
  }
 -- 
 2.7.4
